@@ -131,7 +131,65 @@ header {
   border-bottom-color: var(--accent);
 }
 
-/* ── Main Content ── */
+/* ── Field Selector ── */
+.field-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 10px 12px;
+}
+.field-tab-wrap { position: relative; display: flex; align-items: center; }
+.field-tab {
+  padding: 5px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text2);
+  transition: all 0.15s;
+  font-family: var(--font-sans);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.field-tab:hover  { border-color: var(--accent); color: var(--text); }
+.field-tab.active { background: var(--accent2); color: #fff; border-color: var(--accent); }
+.field-tab-remove {
+  position: absolute;
+  top: -5px; right: -5px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text3);
+  font-size: 11px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1;
+  z-index: 2;
+}
+.field-tab-remove:hover { background: var(--red); color: #fff; border-color: var(--red); }
+.field-tab-add {
+  padding: 5px 12px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--accent);
+  transition: all 0.15s;
+  font-family: var(--font-sans);
+}
+.field-tab-add:hover { border-color: var(--accent); background: rgba(88,166,255,0.08); }
+
+
 .main {
   padding: 24px;
   max-width: 1400px;
@@ -1081,19 +1139,38 @@ function screenField(fieldData, fieldLogistics={}, generalLogistics={}, criteria
 // STATE
 // ═══════════════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════════════
+// STATE — multi-field
+// ═══════════════════════════════════════════════════════════════════════════
+
+function newField(name) {
+  return { _id: Math.random().toString(36).slice(2), fieldName: name };
+}
+
 let state = {
   activeTab: "input",
-  fieldData: {},
-  logistics: {},       // { methodKey: { questionKey: "Yes"|"Partial"|"No" } }
+  activeFieldIdx: 0,
+  fields: [newField("Field 1")],
+  fieldLogistics: {},    // { field._id: { methodKey: { qKey: "Yes"|"Partial"|"No" } } }
   generalLogistics: {
-    onshore:"Yes", infra:"Yes", wells:"Yes", access:"Yes",
-    regulatory:"Yes", wastewater:"Yes", economics:"Yes",
+    onshore:"No", infra:"No", wells:"No", access:"No",
+    regulatory:"No", wastewater:"No", economics:"No",
   },
   criteria: JSON.parse(JSON.stringify(SCREENING_CRITERIA)),
   tuning:   JSON.parse(JSON.stringify(DEFAULT_TUNING)),
-  results:  null,
+  allResults: null,      // array of screenField() results, one per field
   openAccordions: {},
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SCORING RUNNER
+// ═══════════════════════════════════════════════════════════════════════════
+
+function runScreening() {
+  state.allResults = state.fields.map(fd =>
+    screenField(fd, state.fieldLogistics[fd._id] || {}, state.generalLogistics, state.criteria, state.tuning)
+  );
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPERS
@@ -1104,22 +1181,12 @@ function scoreColor(v) {
   if (v >= 45) return "var(--orange)";
   return "var(--red)";
 }
-function scoreClass(v) {
-  if (v >= 70) return "score-high";
-  if (v >= 45) return "score-mid";
-  return "score-low";
-}
 function catClass(cat) {
-  if (cat==="Gas Injection") return "cat-gas";
-  if (cat==="Chemical EOR")  return "cat-chem";
-  if (cat==="Thermal EOR")   return "cat-therm";
+  if (cat === "Gas Injection") return "cat-gas";
+  if (cat === "Chemical EOR")  return "cat-chem";
+  if (cat === "Thermal EOR")   return "cat-therm";
   return "cat-ior";
 }
-
-function runScreening() {
-  state.results = screenField(state.fieldData, state.logistics, state.generalLogistics, state.criteria, state.tuning);
-}
-
 function setTab(t) { state.activeTab = t; render(); }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1128,7 +1195,6 @@ function setTab(t) { state.activeTab = t; render(); }
 
 function render() {
   document.getElementById("app").innerHTML = buildApp();
-  attachEvents();
 }
 
 function buildApp() {
@@ -1137,14 +1203,12 @@ function buildApp() {
   ${buildHeader()}
   ${buildTabs()}
   <main class="main">
-    ${
-      state.activeTab === "input"    ? buildInput()    :
-      state.activeTab === "logistics"? buildLogistics():
-      state.activeTab === "results"  ? buildResults()  :
-      state.activeTab === "weights"  ? buildWeights()  :
-      state.activeTab === "tuning"   ? buildTuning()   :
-      state.activeTab === "guide"    ? buildGuide()    : ""
-    }
+    ${state.activeTab === "input"     ? buildInput()    :
+      state.activeTab === "logistics" ? buildLogistics():
+      state.activeTab === "results"   ? buildResults()  :
+      state.activeTab === "weights"   ? buildWeights()  :
+      state.activeTab === "tuning"    ? buildTuning()   :
+      state.activeTab === "guide"     ? buildGuide()    : ""}
   </main>
   ${buildFooter()}
 </div>`;
@@ -1163,372 +1227,376 @@ function buildHeader() {
     <span class="logo-badge">v5 OSS</span>
   </div>
   <div class="header-links">
-    <a href="https://github.com/your-org/eor-screening-tool" target="_blank">⭐ GitHub</a>
-    <a href="#" onclick="exportJSON()">↓ Export JSON</a>
-    <a href="#" onclick="exportCSV()">↓ Export CSV</a>
+    <a href="https://github.com/antoinethom-lab/eor-screening-tool" target="_blank">⭐ GitHub</a>
+    <a href="#" onclick="exportJSON(event)">↓ JSON</a>
+    <a href="#" onclick="exportCSV(event)">↓ CSV</a>
   </div>
 </header>`;
 }
 
 function buildTabs() {
   const tabs = [
-    { id:"input",    label:"① Reservoir Input" },
-    { id:"logistics",label:"② Logistics" },
-    { id:"results",  label:"③ Results Dashboard" },
-    { id:"weights",  label:"④ Screening Criteria & Weights" },
-    { id:"tuning",   label:"⑤ Tuning Panel" },
-    { id:"guide",    label:"📖 Guide" },
+    { id:"input",     label:"① Input"     },
+    { id:"logistics", label:"② Logistics" },
+    { id:"results",   label:"③ Results"   },
+    { id:"weights",   label:"④ Criteria"  },
+    { id:"tuning",    label:"⑤ Tuning"    },
+    { id:"guide",     label:"📖 Guide"    },
   ];
-  return `<div class="tabs">${tabs.map(t=>`
-    <button class="tab ${state.activeTab===t.id?"active":""}" onclick="setTab('${t.id}')">${t.label}</button>
-  `).join("")}</div>`;
+  return `<div class="tabs">${tabs.map(t =>
+    `<button class="tab ${state.activeTab===t.id?"active":""}" onclick="setTab('${t.id}')">${t.label}</button>`
+  ).join("")}</div>`;
 }
 
-// ── TAB 1: RESERVOIR INPUT ──────────────────────────────────────────────────
-function buildInput() {
-  const fd = state.fieldData;
-  return `
-<div class="section-title">Reservoir Input</div>
-<div class="section-sub">Enter reservoir properties for your field. Blue-outlined inputs are scored in the technical assessment.</div>
-
-<div style="display:grid;gap:20px">
-  ${buildInputSection("🆔 Field Identification", [
-    { key:"fieldName",   label:"Field Name / ID",      type:"text" },
-    { key:"country",     label:"Country / Region",     type:"text" },
-    { key:"maturity",    label:"Field Maturity",       type:"select", opts:["Primary","Waterflood","Tertiary"] },
-    { key:"rockType",    label:"Rock Type",            type:"select", opts:["Sandstone","Carbonate","Fract. Carb.","Other"] },
-    { key:"ooip",        label:"OOIP",                 type:"num", unit:"MMbbl" },
-    { key:"rf",          label:"Current Recovery Factor", type:"num", unit:"%" },
-  ])}
-
-  ${buildInputSection("💧 Fluid Properties (scored)", [
-    { key:"api",       label:"API Gravity",                  type:"num", unit:"°API",     scored:true,  note:PARAM_NOTES.api },
-    { key:"viscosity", label:"Oil Viscosity (reservoir cond.)", type:"num", unit:"cP",   scored:true,  note:PARAM_NOTES.viscosity },
-    { key:"tan",       label:"TAN (Total Acid Number)",      type:"num", unit:"mg KOH/g", scored:true,  note:PARAM_NOTES.tan },
-  ], true)}
-
-  ${buildInputSection("🌊 Water & Salinity (scored)", [
-    { key:"tds_formation", label:"Formation Water TDS",           type:"num", unit:"mg/L" },
-    { key:"tds",           label:"Injection Water TDS",           type:"num", unit:"mg/L",  scored:true, note:PARAM_NOTES.tds },
-    { key:"divalents",     label:"Divalent Cations (Ca²⁺+Mg²⁺)", type:"num", unit:"mg/L",  scored:true, note:PARAM_NOTES.divalents },
-    { key:"oiw",           label:"Oil-in-Water (OiW)",            type:"num", unit:"mg/L" },
-    { key:"suspended",     label:"Suspended Solids",              type:"num", unit:"mg/L" },
-  ], true)}
-
-  ${buildInputSection("🏔️ Reservoir Properties (scored)", [
-    { key:"porosity",  label:"Porosity",              type:"num", unit:"%",   scored:true, note:PARAM_NOTES.porosity },
-    { key:"perm",      label:"Horizontal Permeability",type:"num", unit:"mD", scored:true, note:PARAM_NOTES.perm },
-    { key:"netpay",    label:"Net Pay Thickness",     type:"num", unit:"m",   scored:true, note:PARAM_NOTES.netpay },
-    { key:"depth",     label:"Depth (mid-perf TVDss)",type:"num", unit:"m",   scored:true, note:PARAM_NOTES.depth },
-    { key:"temp",      label:"Reservoir Temperature", type:"num", unit:"°C",  scored:true, note:PARAM_NOTES.temp },
-    { key:"so",        label:"Oil Saturation (current)", type:"num", unit:"%" , scored:true, note:PARAM_NOTES.so },
-    { key:"dp",        label:"Dykstra-Parsons Coeff.", type:"num", unit:"0–1", scored:true, note:PARAM_NOTES.dp },
-  ], true)}
-
-  ${buildInputSection("🔢 Pressure & MMP", [
-    { key:"pres",      label:"Current Reservoir Pressure", type:"num", unit:"bara" },
-    { key:"mmp_co2",   label:"MMP CO₂",                   type:"num", unit:"bara" },
-    { key:"mmp_hcgas", label:"MMP HC Gas",                type:"num", unit:"bara" },
-    { key:"mmp_n2",    label:"MMP N₂",                    type:"num", unit:"bara" },
-  ])}
-
-  ${buildInputSection("⛽ Wells & Spacing", [
-    { key:"wells",     label:"Number of Wells (Prod+Inj)", type:"num" },
-    { key:"injectors", label:"Existing Injectors Operational", type:"num" },
-    { key:"spacing",   label:"Average Well Spacing",       type:"num", unit:"m" },
-  ])}
-</div>
-
-<div style="margin-top:24px;display:flex;gap:12px;align-items:center">
-  <button class="btn btn-primary" onclick="runAndShowResults()">
-    ▶ Run EOR Screening
-  </button>
-  <button class="btn btn-secondary" onclick="resetField()">↺ Reset Field</button>
-  <span style="color:var(--text2);font-size:12px">Results update automatically when you run screening.</span>
+// ── FIELD SELECTOR BAR ────────────────────────────────────────────────────
+function buildFieldSelector(showAdd) {
+  const canAdd = state.fields.length < 8;
+  return `<div class="field-selector">
+  ${state.fields.map((f, i) => `
+    <div class="field-tab-wrap">
+      <button class="field-tab ${i===state.activeFieldIdx?"active":""}" onclick="selectField(${i})">
+        ${f.fieldName || "Field "+(i+1)}
+      </button>
+      ${state.fields.length > 1
+        ? `<button class="field-tab-remove" onclick="removeField(${i})" title="Remove">×</button>`
+        : ""}
+    </div>`).join("")}
+  ${showAdd && canAdd  ? `<button class="field-tab-add" onclick="addField()">+ Add Field</button>` : ""}
+  ${showAdd && !canAdd ? `<span style="font-size:11px;color:var(--text3);padding:0 10px;align-self:center">Max 8 fields</span>` : ""}
 </div>`;
 }
 
-function buildInputSection(title, fields, scored=false) {
-  const fd = state.fieldData;
+// ── TAB 1: RESERVOIR INPUT ────────────────────────────────────────────────
+function buildInput() {
+  const fd = state.fields[state.activeFieldIdx];
+  const FIELD_DEFS = [
+    { section:"🆔 Field Identification", scored:false, fields:[
+      { key:"fieldName", label:"Field Name / ID",         type:"text" },
+      { key:"country",   label:"Country / Region",        type:"text" },
+      { key:"maturity",  label:"Field Maturity",          type:"select", opts:["Primary","Waterflood","Tertiary"] },
+      { key:"rockType",  label:"Rock Type",               type:"select", opts:["Sandstone","Carbonate","Fract. Carb.","Other"] },
+      { key:"ooip",      label:"OOIP",                    type:"num", unit:"MMbbl" },
+      { key:"rf",        label:"Current Recovery Factor", type:"num", unit:"%" },
+    ]},
+    { section:"💧 Fluid Properties", scored:true, fields:[
+      { key:"api",       label:"API Gravity",                     type:"num", unit:"°API",     scored:true, note:PARAM_NOTES.api },
+      { key:"viscosity", label:"Oil Viscosity (reservoir cond.)", type:"num", unit:"cP",       scored:true, note:PARAM_NOTES.viscosity },
+      { key:"tan",       label:"TAN (Total Acid Number)",         type:"num", unit:"mg KOH/g", scored:true, note:PARAM_NOTES.tan },
+    ]},
+    { section:"🌊 Water & Salinity", scored:true, fields:[
+      { key:"tds_formation", label:"Formation Water TDS",           type:"num", unit:"mg/L" },
+      { key:"tds",           label:"Injection Water TDS",           type:"num", unit:"mg/L", scored:true, note:PARAM_NOTES.tds },
+      { key:"divalents",     label:"Divalent Cations (Ca²⁺+Mg²⁺)", type:"num", unit:"mg/L", scored:true, note:PARAM_NOTES.divalents },
+      { key:"oiw",           label:"Oil-in-Water (OiW)",            type:"num", unit:"mg/L" },
+      { key:"suspended",     label:"Suspended Solids",              type:"num", unit:"mg/L" },
+    ]},
+    { section:"🏔️ Reservoir Properties", scored:true, fields:[
+      { key:"porosity",  label:"Porosity",               type:"num", unit:"%",    scored:true, note:PARAM_NOTES.porosity },
+      { key:"perm",      label:"Horizontal Permeability", type:"num", unit:"mD",  scored:true, note:PARAM_NOTES.perm },
+      { key:"netpay",    label:"Net Pay Thickness",       type:"num", unit:"m",   scored:true, note:PARAM_NOTES.netpay },
+      { key:"depth",     label:"Depth (mid-perf TVDss)",  type:"num", unit:"m",   scored:true, note:PARAM_NOTES.depth },
+      { key:"temp",      label:"Reservoir Temperature",   type:"num", unit:"°C",  scored:true, note:PARAM_NOTES.temp },
+      { key:"so",        label:"Oil Saturation (current)",type:"num", unit:"%",   scored:true, note:PARAM_NOTES.so },
+      { key:"dp",        label:"Dykstra-Parsons Coeff.",  type:"num", unit:"0–1", scored:true, note:PARAM_NOTES.dp },
+    ]},
+    { section:"🔢 Pressure & MMP", scored:false, fields:[
+      { key:"pres",      label:"Current Reservoir Pressure", type:"num", unit:"bara" },
+      { key:"mmp_co2",   label:"MMP CO₂",                   type:"num", unit:"bara" },
+      { key:"mmp_hcgas", label:"MMP HC Gas",                type:"num", unit:"bara" },
+      { key:"mmp_n2",    label:"MMP N₂",                    type:"num", unit:"bara" },
+    ]},
+    { section:"⛽ Wells & Spacing", scored:false, fields:[
+      { key:"wells",     label:"Number of Wells (Prod+Inj)",    type:"num" },
+      { key:"injectors", label:"Existing Injectors Operational", type:"num" },
+      { key:"spacing",   label:"Average Well Spacing",          type:"num", unit:"m" },
+    ]},
+  ];
+
   return `
+<div class="section-title">Reservoir Input</div>
+<div class="section-sub">Enter data for each field tab. Blue-outlined = scored input. Up to 8 fields.</div>
+
+${buildFieldSelector(true)}
+
+<div style="display:grid;gap:16px;margin-top:16px">
+${FIELD_DEFS.map(sec => `
 <div class="card">
   <div class="card-header">
-    <span class="card-title">${title}</span>
-    ${scored ? `<span class="chip">scored inputs</span>` : ""}
+    <span class="card-title">${sec.section}</span>
+    ${sec.scored ? `<span class="chip">scored</span>` : ""}
   </div>
   <div class="card-body">
     <div class="field-grid">
-      ${fields.map(f => {
+      ${sec.fields.map(f => {
         const val = fd[f.key] ?? "";
         const border = f.scored ? "border-color:var(--accent2)" : "";
-        if (f.type === "select") {
-          return `
+        if (f.type === "select") return `
 <div class="field-group">
-  <label class="field-label">${f.label}${f.note?`<span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-box">${f.note}</span></span>`:""}</label>
-  <select class="field-input" style="${border}" data-key="${f.key}" onchange="setField('${f.key}',this.value)">
+  <label class="field-label">${f.label}</label>
+  <select class="field-input" style="${border}" onchange="setField('${f.key}',this.value)">
     ${(f.opts||[]).map(o=>`<option ${val===o?"selected":""}>${o}</option>`).join("")}
   </select>
 </div>`;
-        }
-        if (f.type === "text") {
-          return `
+        if (f.type === "text") return `
 <div class="field-group">
   <label class="field-label">${f.label}</label>
-  <input class="field-input" type="text" value="${val}" data-key="${f.key}" oninput="setField('${f.key}',this.value)">
+  <input class="field-input" type="text" value="${String(val).replace(/"/g,'&quot;')}" oninput="setField('${f.key}',this.value)">
 </div>`;
-        }
         return `
 <div class="field-group">
   <label class="field-label">${f.label}${f.unit?`<span class="field-unit">${f.unit}</span>`:""}${f.note?`<span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-box">${f.note}</span></span>`:""}</label>
-  <input class="field-input" type="number" step="any" value="${val}" data-key="${f.key}" oninput="setField('${f.key}',pf(this.value))">
+  <input class="field-input" type="number" step="any" value="${val}" oninput="setField('${f.key}',pf(this.value))">
 </div>`;
       }).join("")}
     </div>
   </div>
+</div>`).join("")}
+</div>
+
+<div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+  <button class="btn btn-primary" onclick="runAndShowResults()">▶ Run Screening (${state.fields.length} field${state.fields.length>1?"s":""})</button>
+  <button class="btn btn-secondary" onclick="clearField()">↺ Clear This Field</button>
+  <button class="btn btn-secondary" onclick="duplicateField()">⧉ Duplicate</button>
 </div>`;
 }
 
-// ── TAB 2: LOGISTICS ────────────────────────────────────────────────────────
+// ── TAB 2: LOGISTICS ──────────────────────────────────────────────────────
 function buildLogistics() {
+  const fid = state.fields[state.activeFieldIdx]._id;
+  const flog = state.fieldLogistics[fid] || {};
   return `
-<div class="section-title">Logistics & Field Readiness Checklist</div>
-<div class="section-sub">Answer Yes / Partial / No for each question. ⚠ questions are soft-cap triggers — answering No caps the logistics score at ${state.tuning.logSoftCap}%.</div>
+<div class="section-title">Logistics & Field Readiness</div>
+<div class="section-sub">Per-field. ⚠ = soft-cap trigger (No → logistics capped at ${state.tuning.logSoftCap}%). General answers apply to all fields.</div>
 
-<div style="display:grid;gap:16px">
-  ${buildLogisticsSection("General Logistics", "General", state.generalLogistics, true)}
-  ${EOR_METHODS.map(m => buildLogisticsSection(m, m, state.logistics[m]||{}, false)).join("")}
+${buildFieldSelector(false)}
+
+<div style="display:grid;gap:12px;margin-top:16px">
+  ${buildLogSection("General Logistics", "General", state.generalLogistics, true)}
+  ${EOR_METHODS.map(m => buildLogSection(m, m, flog[m]||{}, false)).join("")}
 </div>`;
 }
 
-function buildLogisticsSection(title, method, answers, isGeneral) {
-  const qs = LOGISTICS_QUESTIONS[method] || [];
+function buildLogSection(title, method, answers, isGeneral) {
+  const qs   = LOGISTICS_QUESTIONS[method] || [];
   const open = state.openAccordions[method] ?? (method === "General");
+  const ig   = isGeneral ? "true" : "false";
   return `
 <div class="card">
   <div class="accordion-header" onclick="toggleAccordion('${method}')">
-    <span class="accordion-header-text">${method === "General" ? "📋 "+title : title}${method!=="General"?` <span class="cat-pill ${catClass(METHOD_CATEGORIES[method])}">${METHOD_CATEGORIES[method]}</span>`:""}</span>
+    <span class="accordion-header-text">
+      ${method==="General" ? "📋 "+title : title}
+      ${method!=="General" ? `<span class="cat-pill ${catClass(METHOD_CATEGORIES[method])}">${METHOD_CATEGORIES[method]}</span>` : ""}
+    </span>
     <span class="accordion-chevron ${open?"open":""}">▶</span>
   </div>
-  ${open ? `
-  <div class="accordion-body">
-    ${qs.map(q => `
-    <div class="logistics-row">
-      <span class="logistics-q ${q.softCap?"soft-cap":""}">${q.label}</span>
-      <div class="logistics-toggle">
-        ${["Yes","Partial","No"].map(opt => {
-          const cur = answers[q.key] ?? "No";
-          return `<button class="toggle-btn ${cur===opt?"active-"+opt.toLowerCase().replace("partial","part"):""}"
-            onclick="setLogistics('${method}','${q.key}','${opt}','${isGeneral}')">${opt}</button>`;
-        }).join("")}
-      </div>
-    </div>`).join("")}
+  ${open ? `<div class="accordion-body">
+    ${qs.map(q => {
+      const cur = answers[q.key] ?? "No";
+      return `<div class="logistics-row">
+        <span class="logistics-q ${q.softCap?"soft-cap":""}">${q.label}</span>
+        <div class="logistics-toggle">
+          ${["Yes","Partial","No"].map(opt =>
+            `<button class="toggle-btn ${cur===opt?"active-"+opt.toLowerCase().replace("partial","part"):""}"
+              onclick="setLogistics('${method}','${q.key}','${opt}','${ig}')">${opt}</button>`
+          ).join("")}
+        </div>
+      </div>`;
+    }).join("")}
   </div>` : ""}
 </div>`;
 }
 
-// ── TAB 3: RESULTS ──────────────────────────────────────────────────────────
+// ── TAB 3: RESULTS ────────────────────────────────────────────────────────
 function buildResults() {
-  if (!state.results) {
-    return `
+  if (!state.allResults) return `
 <div class="empty-state">
   <h3>No results yet</h3>
-  <p>Go to <strong>Reservoir Input</strong> and click <strong>▶ Run EOR Screening</strong></p>
-  <br>
-  <button class="btn btn-primary" onclick="runAndShowResults()">▶ Run Screening Now</button>
+  <p>Go to <strong>① Input</strong> and click <strong>▶ Run Screening</strong></p>
+  <br><button class="btn btn-primary" onclick="runAndShowResults()">▶ Run Now</button>
 </div>`;
-  }
 
-  const r = state.results;
-  const sorted = EOR_METHODS.map(m=>({method:m,...r[m]})).sort((a,b)=>b.combined-a.combined);
-  const top3 = sorted.slice(0,3);
+  const nF   = state.fields.length;
+  const names = state.fields.map((f,i) => f.fieldName || "Field "+(i+1));
+
+  // top3 methods per field by combined score
+  const top3 = state.allResults.map(r =>
+    EOR_METHODS.map(m=>({m, c:r[m].combined})).sort((a,b)=>b.c-a.c).slice(0,3).map(x=>x.m)
+  );
 
   return `
 <div class="section-title">Results Dashboard</div>
-<div class="section-sub">Technical feasibility × Logistics readiness. Combined score = ${state.tuning.techWeight}% Technical + ${state.tuning.logWeight}% Logistics. Pass threshold: ≥${state.tuning.passThreshold}%</div>
+<div class="section-sub">${nF} field${nF>1?"s":""} · Combined = ${state.tuning.techWeight}% Tech + ${state.tuning.logWeight}% Log · Threshold ≥${state.tuning.passThreshold}% · 🥇🥈🥉 = top 3 per field</div>
 
-<div class="info-box">
-  <strong>How to read this:</strong> Use <em>combined score</em> for technical feasibility ("CAN we do it?"). Switch to the <strong>④ Screening Criteria</strong> tab to adjust weights. Switch to <strong>⑤ Tuning</strong> to change caps and thresholds.
-</div>
-
-<div class="podium">
-  ${top3.map((r,i)=>`
-  <div class="podium-card rank-${i+1}">
-    <div class="podium-rank">${["🥇","🥈","🥉"][i]}</div>
-    <div style="font-size:11px;color:var(--text2);margin-bottom:4px;font-family:var(--font-mono)">#${i+1} RANKED</div>
-    <div class="podium-method">${r.method}</div>
-    <div class="podium-score">${r.combined.toFixed(1)}%</div>
-    <div class="cat-pill ${catClass(METHOD_CATEGORIES[r.method])}">${METHOD_CATEGORIES[r.method]}</div>
-    ${r.flags.length?`<div class="flags" style="margin-top:8px">${r.flags.map(f=>`<span class="flag ${f.includes("⚠")?"flag-warn":""}">${f}</span>`).join("")}</div>`:""}
-  </div>`).join("")}
-</div>
-
-<div class="card" style="overflow-x:auto">
+<div class="card" style="overflow-x:auto;margin-bottom:20px">
   <table class="results-table">
     <thead>
       <tr>
-        <th>Method</th>
+        <th style="min-width:155px">EOR Method</th>
         <th>Category</th>
-        <th style="min-width:130px">Technical</th>
-        <th style="min-width:130px">Logistics</th>
-        <th style="min-width:130px">Combined</th>
-        <th>Status</th>
-        <th>Flags</th>
+        ${names.map(n=>`<th style="min-width:100px;text-align:center">${n}</th>`).join("")}
       </tr>
     </thead>
     <tbody>
-      ${sorted.map(row => {
-        const candidate = row.combined >= state.tuning.passThreshold;
-        return `
-      <tr>
-        <td style="font-weight:600;white-space:nowrap">${row.method}</td>
-        <td><span class="cat-pill ${catClass(METHOD_CATEGORIES[row.method])}">${METHOD_CATEGORIES[row.method]}</span></td>
-        <td>${buildScoreBar(row.tech)}</td>
-        <td>${buildScoreBar(row.log)}</td>
-        <td>${buildScoreBar(row.combined, true)}</td>
-        <td><span style="color:${candidate?"var(--green)":"var(--text3)"};font-size:12px;font-family:var(--font-mono)">${candidate?"● CANDIDATE":"○ Below threshold"}</span></td>
-        <td><div class="flags">${row.flags.map(f=>`<span class="flag ${f.includes("⚠")?"flag-warn":""}">${f}</span>`).join("") || '<span style="color:var(--text3);font-size:11px">✓</span>'}</div></td>
-      </tr>`;
+      ${EOR_METHODS.map(method => {
+        const cat = METHOD_CATEGORIES[method];
+        return `<tr>
+          <td style="font-weight:600;white-space:nowrap">${method}</td>
+          <td><span class="cat-pill ${catClass(cat)}">${cat}</span></td>
+          ${state.allResults.map((r, fi) => {
+            const res   = r[method];
+            const rank  = top3[fi].indexOf(method);
+            const medal = ["🥇","🥈","🥉"][rank] ?? "";
+            const flags = res.flags.join(" ");
+            return `<td style="text-align:center;padding:5px 8px;border-left:1px solid var(--border2)">
+              <div style="font-family:var(--font-mono);font-size:16px;font-weight:700;color:${scoreColor(res.combined)}">${res.combined.toFixed(0)}%</div>
+              <div style="font-size:10px;color:var(--text3)">${res.tech.toFixed(0)}T · ${res.log.toFixed(0)}L</div>
+              <div style="font-size:11px;margin-top:1px">${medal}${flags?`<span style="color:var(--orange);font-size:10px"> ${flags}</span>`:""}</div>
+            </td>`;
+          }).join("")}
+        </tr>`;
       }).join("")}
     </tbody>
   </table>
 </div>
-`;
+
+<div class="section-title" style="font-size:15px;margin-bottom:10px">Top 3 per Field</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:20px">
+  ${state.fields.map((f,fi) => {
+    const medals = ["🥇","🥈","🥉"];
+    return `<div class="card">
+      <div class="card-header"><span class="card-title">${f.fieldName||"Field "+(fi+1)}</span></div>
+      <div class="card-body" style="padding:10px;display:grid;gap:8px">
+        ${top3[fi].map((m,i) => {
+          const res = state.allResults[fi][m];
+          return `<div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:18px">${medals[i]}</span>
+            <div>
+              <div style="font-size:12px;font-weight:600;line-height:1.3">${m}</div>
+              <div style="font-family:var(--font-mono);font-size:11px;color:${scoreColor(res.combined)}">${res.combined.toFixed(1)}%</div>
+            </div>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>`;
+  }).join("")}
+</div>
+
+<div style="display:flex;gap:16px;font-size:11px;font-family:var(--font-mono);color:var(--text3)">
+  <span style="color:var(--green)">■ ≥70% strong</span>
+  <span style="color:var(--orange)">■ 45–69% possible</span>
+  <span style="color:var(--red)">■ &lt;45% unlikely</span>
+  <span>· T=Technical L=Logistics</span>
+</div>`;
 }
 
 function buildScoreBar(v, bold=false) {
   const c = scoreColor(v);
-  return `
-<div class="score-bar-wrap">
-  <div class="score-bar-track">
-    <div class="score-bar-fill" style="width:${v}%;background:${c}"></div>
-  </div>
+  return `<div class="score-bar-wrap">
+  <div class="score-bar-track"><div class="score-bar-fill" style="width:${v}%;background:${c}"></div></div>
   <span class="score-value" style="color:${c};${bold?"font-weight:600":""}">${v.toFixed(1)}%</span>
 </div>`;
 }
 
-// ── TAB 4: WEIGHTS / CRITERIA ───────────────────────────────────────────────
+// ── TAB 4: WEIGHTS / CRITERIA ────────────────────────────────────────────
 function buildWeights() {
   return `
 <div class="section-title">Screening Criteria & Parameter Weights</div>
-<div class="section-sub">
-  Edit ranges [Min / Ideal / Max] and weights (0–5) for each EOR method and parameter.
-  Weight 0 = parameter not used for that method. Weight 5 = critical.
-  Changes take effect immediately when you re-run screening.
-</div>
-
+<div class="section-sub">Edit Min / Ideal / Max ranges and weights (0–5). Weight 0 = unused. Weight 5 = critical.</div>
 <div class="info-box">
-  <strong>Scoring logic:</strong> Each parameter is scored 0–100 on a triangular function:
-  below Min → 0, at Min → 0, at Ideal/Avg → 100, at Max → 0.
-  If Max = 999, no upper limit is applied (score stays 100 once value ≥ Ideal).
-  The weighted average of all non-zero parameters gives the Technical Score (0–100).
+  <strong>Scoring logic:</strong> Below Min → 0, at Ideal → 100, at Max → 0. Max=999 means no upper limit.
+  Weighted average of all non-zero parameters = Technical Score.
 </div>
-
-<div style="display:grid;gap:20px">
-  ${EOR_METHODS.map(m => buildCriteriaTable(m)).join("")}
+<div style="display:grid;gap:16px">
+  ${EOR_METHODS.map(m => {
+    const open = state.openAccordions["crit_"+m] ?? false;
+    const crit = state.criteria[m];
+    return `<div class="card">
+      <div class="accordion-header" onclick="toggleAccordion('crit_${m}')">
+        <span class="accordion-header-text">${m} <span class="cat-pill ${catClass(METHOD_CATEGORIES[m])}">${METHOD_CATEGORIES[m]}</span></span>
+        <span class="accordion-chevron ${open?"open":""}">▶</span>
+      </div>
+      ${open ? `<div class="accordion-body" style="padding:0;overflow-x:auto">
+        <table class="results-table" style="min-width:580px">
+          <thead><tr>
+            <th>Parameter</th><th>Unit</th>
+            <th style="min-width:80px">Min</th>
+            <th style="min-width:80px">Ideal</th>
+            <th style="min-width:80px">Max</th>
+            <th style="min-width:80px">Weight (0–5)</th>
+            <th>Field Score Preview</th>
+          </tr></thead>
+          <tbody>
+            ${PARAMETERS.map(p => {
+              const spec = crit[p.key];
+              if (!spec) return "";
+              const fv   = pf(state.fields[state.activeFieldIdx][p.key]);
+              const rs   = isNaN(fv) ? null : scoreParameter(fv, spec);
+              return `<tr>
+                <td style="font-weight:500">${p.label}${PARAM_NOTES[p.key]?`<span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-box">${PARAM_NOTES[p.key]}</span></span>`:""}</td>
+                <td><span class="field-unit">${p.unit}</span></td>
+                <td><input class="weight-input" type="number" step="any" value="${spec.min}" onchange="setCriteria('${m}','${p.key}','min',pf(this.value))"></td>
+                <td><input class="weight-input" type="number" step="any" value="${spec.avg}" onchange="setCriteria('${m}','${p.key}','avg',pf(this.value))"></td>
+                <td><input class="weight-input" type="number" step="any" value="${spec.max}" onchange="setCriteria('${m}','${p.key}','max',pf(this.value))"></td>
+                <td>
+                  <select class="field-input" style="width:65px;padding:3px 4px;font-size:12px" onchange="setCriteria('${m}','${p.key}','weight',parseInt(this.value))">
+                    ${[0,1,2,3,4,5].map(w=>`<option ${spec.weight===w?"selected":""}>${w}</option>`).join("")}
+                  </select>
+                </td>
+                <td>${rs!==null ? buildScoreBar(rs) : '<span style="color:var(--text3);font-size:11px">No data</span>'}
+                ${rs!==null&&spec.weight>0?`<div style="font-size:10px;color:var(--text3)">${fv} → ${rs.toFixed(1)} × w${spec.weight}</div>`:""}</td>
+              </tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>` : ""}
+    </div>`;
+  }).join("")}
 </div>
-
-<div style="margin-top:20px">
+<div style="margin-top:16px">
   <button class="btn btn-secondary" onclick="resetCriteria()">↺ Reset to Defaults</button>
 </div>`;
 }
 
-function buildCriteriaTable(method) {
-  const crit = state.criteria[method];
-  const open = state.openAccordions["crit_"+method] ?? false;
-  return `
-<div class="card">
-  <div class="accordion-header" onclick="toggleAccordion('crit_${method}')">
-    <span class="accordion-header-text">${method} <span class="cat-pill ${catClass(METHOD_CATEGORIES[method])}">${METHOD_CATEGORIES[method]}</span></span>
-    <span class="accordion-chevron ${open?"open":""}">▶</span>
-  </div>
-  ${open ? `
-  <div class="accordion-body" style="padding:0;overflow-x:auto">
-    <table class="results-table" style="min-width:600px">
-      <thead>
-        <tr>
-          <th>Parameter</th>
-          <th>Unit</th>
-          <th style="min-width:90px">Min</th>
-          <th style="min-width:90px">Ideal (Avg)</th>
-          <th style="min-width:90px">Max</th>
-          <th style="min-width:90px">Weight (0–5)</th>
-          <th>Scoring Preview</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${PARAMETERS.map(p => {
-          const spec = crit[p.key];
-          if (!spec) return "";
-          const fieldVal = pf(state.fieldData[p.key]);
-          const rawScore = isNaN(fieldVal) ? null : scoreParameter(fieldVal, spec);
-          return `
-        <tr>
-          <td style="font-weight:500">${p.label} <span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-box">${PARAM_NOTES[p.key]||""}</span></span></td>
-          <td><span class="field-unit">${p.unit}</span></td>
-          <td><input class="weight-input" type="number" step="any" value="${spec.min}"
-            onchange="setCriteria('${method}','${p.key}','min',pf(this.value))"></td>
-          <td><input class="weight-input" type="number" step="any" value="${spec.avg}"
-            onchange="setCriteria('${method}','${p.key}','avg',pf(this.value))"></td>
-          <td><input class="weight-input" type="number" step="any" value="${spec.max}"
-            onchange="setCriteria('${method}','${p.key}','max',pf(this.value))"></td>
-          <td>
-            <select class="field-input" style="width:70px;padding:3px 6px;font-size:12px"
-              onchange="setCriteria('${method}','${p.key}','weight',parseInt(this.value))">
-              ${[0,1,2,3,4,5].map(w=>`<option ${spec.weight===w?"selected":""}>${w}</option>`).join("")}
-            </select>
-          </td>
-          <td>
-            ${rawScore !== null ? buildScoreBar(rawScore) : '<span style="color:var(--text3);font-size:11px">No data</span>'}
-            ${rawScore !== null && spec.weight > 0 ? `<div style="font-size:10px;color:var(--text3);margin-top:2px">Field value: ${fieldVal} → Raw score: ${rawScore.toFixed(1)} × w${spec.weight}</div>` : ""}
-          </td>
-        </tr>`;
-        }).join("")}
-      </tbody>
-    </table>
-  </div>` : ""}
-</div>`;
-}
-
-// ── TAB 5: TUNING ────────────────────────────────────────────────────────────
+// ── TAB 5: TUNING ─────────────────────────────────────────────────────────
 function buildTuning() {
   const t = state.tuning;
+  function tn(key, label, desc, val) {
+    return `<div class="tuning-item">
+      <label class="tuning-label">${label}</label>
+      <div class="tuning-desc">${desc}</div>
+      <input class="field-input" type="number" step="any" value="${val}" onchange="setTuning('${key}',pf(this.value))">
+    </div>`;
+  }
   return `
 <div class="section-title">Tuning Panel</div>
-<div class="section-sub">All global parameters controlling scoring behaviour. Every change takes effect on the next screening run.</div>
-
-<div style="display:grid;gap:20px">
+<div class="section-sub">Global parameters controlling scoring behaviour.</div>
+<div style="display:grid;gap:16px">
 
   <div class="card">
     <div class="card-header"><span class="card-title">1. Global Score Balance</span></div>
     <div class="card-body">
       <div class="tuning-grid">
-        ${buildTuningNum("techWeight","Technical Score Weight (%)","Weight of Technical in Combined score. Tech+Log must sum to 100.",t.techWeight)}
-        ${buildTuningNum("logWeight","Logistics Score Weight (%)","Weight of Logistics in Combined. Auto-validates sum.",t.logWeight)}
-        ${buildTuningNum("passThreshold","Candidate Pass Threshold (%)","Combined ≥ this value → green / candidate",t.passThreshold)}
-        ${buildTuningNum("techSoftCap","Technical Soft-Cap (%)","If MMP fails: Technical score is capped here. Set 100 to disable.",t.techSoftCap)}
-        ${buildTuningNum("logSoftCap","Logistics Soft-Cap (%)","If critical logistics = No: Logistics capped here.",t.logSoftCap)}
-        ${buildTuningNum("fracturedCarbCap","Fractured Carbonate Hard Cap (%)","Fractures bypass matrix → cap applied (LSWF exempt).",t.fracturedCarbCap)}
+        ${tn("techWeight","Technical Weight (%)","Weight of Technical score in Combined (Tech+Log = 100)",t.techWeight)}
+        ${tn("logWeight","Logistics Weight (%)","Weight of Logistics score in Combined",t.logWeight)}
+        ${tn("passThreshold","Pass Threshold (%)","Combined ≥ this → candidate",t.passThreshold)}
+        ${tn("techSoftCap","Technical Soft-Cap (%)","MMP failure → Tech capped here. Set 100 to disable.",t.techSoftCap)}
+        ${tn("logSoftCap","Logistics Soft-Cap (%)","Critical logistics No → Log capped here",t.logSoftCap)}
+        ${tn("fracturedCarbCap","Fractured Carb. Hard Cap (%)","Applied to all methods except Low-Sal. WF",t.fracturedCarbCap)}
       </div>
-      <div style="margin-top:12px;padding:10px;background:var(--bg3);border-radius:var(--radius);font-family:var(--font-mono);font-size:12px">
-        Combined = (Tech × ${t.techWeight}% + Log × ${t.logWeight}%) ÷ 100 = weighted average
+      <div style="margin-top:10px;padding:8px 12px;background:var(--bg3);border-radius:var(--radius);font-family:var(--font-mono);font-size:12px">
+        Combined = (Tech × ${t.techWeight}% + Log × ${t.logWeight}%) ÷ 100
       </div>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-header"><span class="card-title">2. Rock-Type Modifiers (Carbonate, Non-Fractured)</span></div>
+    <div class="card-header"><span class="card-title">2. Rock-Type Modifiers (Carbonate, non-fractured)</span></div>
     <div class="card-body">
-      <p style="font-size:13px;color:var(--text2);margin-bottom:16px">
-        Multiplier applied to Technical Score when reservoir rock type = Carbonate (non-fractured).
-        1.0 = no penalty. 0.5 = 50% penalty. Fractured carbonates use the hard cap above instead.
-      </p>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Multiplier on Technical Score when rock type = Carbonate. 1.0 = no penalty, 0.5 = 50% penalty.</p>
       <div class="field-grid">
-        ${EOR_METHODS.map(m => `
-        <div class="field-group">
-          <label class="field-label">${m} <span class="cat-pill ${catClass(METHOD_CATEGORIES[m])} " style="font-size:9px">${METHOD_CATEGORIES[m]}</span></label>
-          <input class="field-input" type="number" min="0" max="1" step="0.05"
-            value="${t.rockModifiers[m]}"
-            onchange="setRockMod('${m}',pf(this.value))">
+        ${EOR_METHODS.map(m => `<div class="field-group">
+          <label class="field-label">${m}</label>
+          <input class="field-input" type="number" min="0" max="1" step="0.05" value="${t.rockModifiers[m]}" onchange="setRockMod('${m}',pf(this.value))">
         </div>`).join("")}
       </div>
     </div>
@@ -1537,222 +1605,197 @@ function buildTuning() {
   <div class="card">
     <div class="card-header"><span class="card-title">3. Water Treatment Flag Thresholds</span></div>
     <div class="card-body">
-      <p style="font-size:13px;color:var(--text2);margin-bottom:16px">
-        The 💧WT flag is raised when water quality may challenge EOR injection. Informational only — does not change scores.
-      </p>
       <div class="tuning-grid">
-        ${buildTuningNum("wt_tds","TDS Trigger (mg/L)","Flag if formation TDS > this AND permeability < threshold",t.wt_tds)}
-        ${buildTuningNum("wt_divalents","Divalents Trigger (mg/L)","High divalents → scaling risk for polymer/chemicals",t.wt_divalents)}
-        ${buildTuningNum("wt_oiw","Oil-in-Water Trigger (mg/L)","OiW > threshold typically requires treatment before injection",t.wt_oiw)}
-        ${buildTuningNum("wt_solids","Suspended Solids Trigger (mg/L)","Solids plug pores in low-permeability reservoirs",t.wt_solids)}
-        ${buildTuningNum("wt_perm","Permeability Threshold (mD)","Below this perm, water quality is critical for injectivity",t.wt_perm)}
+        ${tn("wt_tds","TDS Trigger (mg/L)","Flag if formation TDS > this AND perm < threshold",t.wt_tds)}
+        ${tn("wt_divalents","Divalents Trigger (mg/L)","High divalents → scaling risk",t.wt_divalents)}
+        ${tn("wt_oiw","Oil-in-Water Trigger (mg/L)","OiW > threshold needs treatment",t.wt_oiw)}
+        ${tn("wt_solids","Suspended Solids Trigger (mg/L)","Solids plug pores in low-perm",t.wt_solids)}
+        ${tn("wt_perm","Permeability Threshold (mD)","Below this perm, water quality is critical",t.wt_perm)}
       </div>
     </div>
   </div>
 
 </div>
-
-<div style="margin-top:20px;display:flex;gap:12px">
-  <button class="btn btn-primary" onclick="runAndShowResults()">▶ Re-run Screening with These Settings</button>
+<div style="margin-top:16px;display:flex;gap:10px">
+  <button class="btn btn-primary" onclick="runAndShowResults()">▶ Re-run with These Settings</button>
   <button class="btn btn-secondary" onclick="resetTuning()">↺ Reset to Defaults</button>
 </div>`;
 }
 
-function buildTuningNum(key, label, desc, val) {
-  return `
-<div class="tuning-item">
-  <label class="tuning-label">${label}</label>
-  <div class="tuning-desc">${desc}</div>
-  <input class="field-input" type="number" step="any" value="${val}"
-    onchange="setTuning('${key}',pf(this.value))">
-</div>`;
-}
-
-// ── TAB 6: GUIDE ─────────────────────────────────────────────────────────────
+// ── TAB 6: GUIDE ──────────────────────────────────────────────────────────
 function buildGuide() {
   return `
-<div class="section-title">User Guide & Scoring Methodology</div>
-
-<div style="display:grid;gap:20px;max-width:860px">
+<div class="section-title">User Guide</div>
+<div style="display:grid;gap:16px;max-width:820px">
   <div class="card">
-    <div class="card-header"><span class="card-title">Workflow — 5 Steps</span></div>
-    <div class="card-body" style="display:grid;gap:14px">
+    <div class="card-header"><span class="card-title">Workflow</span></div>
+    <div class="card-body" style="display:grid;gap:12px">
       ${[
-        ["① Reservoir Input","Enter field reservoir, fluid, and pressure data. Scored inputs are highlighted with blue borders."],
-        ["② Logistics Checklist","Answer Yes/Partial/No for each readiness question per method. ⚠ questions are soft-cap triggers."],
-        ["③ Results Dashboard","View Technical, Logistics, and Combined scores. Top 3 methods are highlighted. Flags explain constraints."],
-        ["④ Screening Criteria & Weights","Edit Min/Ideal/Max ranges and weights for each parameter and method. Real-time transparency."],
-        ["⑤ Tuning Panel","Adjust global balance (Tech/Log weights), soft-caps, MMP penalties, and water treatment thresholds."],
-      ].map(([t,d])=>`<div><strong style="color:var(--accent)">${t}</strong><br><span style="color:var(--text2);font-size:13px">${d}</span></div>`).join("")}
+        ["① Input","Add up to 8 field tabs. Enter reservoir data for each. Blue-outlined inputs are scored."],
+        ["② Logistics","Per-field Yes/Partial/No checklist. General answers apply to all fields."],
+        ["③ Results","All fields compared side-by-side. Each cell shows combined %, Tech, Logistics, flags, and medals."],
+        ["④ Criteria","Edit Min/Ideal/Max and weights for every parameter × method. Live score preview shown."],
+        ["⑤ Tuning","Adjust Tech/Log balance, soft-caps, rock modifiers, water treatment thresholds."],
+      ].map(([t,d])=>`<div><strong style="color:var(--accent)">${t}</strong> — <span style="color:var(--text2);font-size:13px">${d}</span></div>`).join("")}
     </div>
   </div>
-
   <div class="card">
-    <div class="card-header"><span class="card-title">Scoring Logic — Technical Score</span></div>
+    <div class="card-header"><span class="card-title">Scoring Logic</span></div>
     <div class="card-body">
-      <p style="color:var(--text2);font-size:13px;line-height:1.7;margin-bottom:14px">
-        Each parameter is scored on a <strong style="color:var(--text)">triangular function</strong> [0–100]:
-      </p>
-      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:14px;font-family:var(--font-mono);font-size:12px;line-height:1.8;color:var(--text2)">
-        value &lt; Min                  → score = 0 (out of range)<br>
-        Min ≤ value ≤ Ideal           → score = (value − Min) / (Ideal − Min) × 100<br>
-        Ideal ≤ value ≤ Max           → score = (Max − value) / (Max − Ideal) × 100<br>
-        value &gt; Max                 → score = 0 (out of range)<br>
-        Max = 999 (no upper limit)    → score = 100 once value ≥ Ideal<br>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px;font-family:var(--font-mono);font-size:12px;line-height:1.9;color:var(--text2)">
+        value &lt; Min          → score = 0<br>
+        Min ≤ value ≤ Ideal    → (value−Min)/(Ideal−Min) × 100<br>
+        Ideal ≤ value ≤ Max    → (Max−value)/(Max−Ideal) × 100<br>
+        value &gt; Max          → score = 0<br>
+        Max = 999              → score stays 100 once value ≥ Ideal<br>
+        Tech Score             → Σ(score×weight) / Σ(weight×100) × 100
       </div>
-      <p style="color:var(--text2);font-size:13px;line-height:1.7;margin-top:14px">
-        <strong style="color:var(--text)">Weighted average:</strong> Technical Score = Σ(score_i × weight_i) / Σ(weight_i × 100) × 100<br>
-        Only parameters with weight &gt; 0 and non-empty field data are included.
-      </p>
     </div>
   </div>
-
   <div class="card">
-    <div class="card-header"><span class="card-title">Flags & Caps</span></div>
-    <div class="card-body" style="display:grid;gap:10px">
+    <div class="card-header"><span class="card-title">Flags</span></div>
+    <div class="card-body" style="display:grid;gap:8px">
       ${[
-        ["🚫MMP","Gas methods (Miscible CO₂, HC Gas, N₂): current reservoir pressure < MMP. Technical score capped at Soft-Cap threshold."],
-        ["🚫Frac","Fractured carbonate reservoir. Matrix bypassed by fractures — all methods capped except Low-Sal. WF."],
-        ["⚠Log","Logistics score at or below the soft-cap threshold (often triggered by critical 'No' answer)."],
-        ["💧WT","Water quality flag: high TDS+low perm, high divalents, high OiW, or high suspended solids. Informational only."],
-      ].map(([f,d])=>`<div style="display:flex;gap:12px"><span class="flag" style="white-space:nowrap;align-self:flex-start;margin-top:2px">${f}</span><span style="font-size:13px;color:var(--text2)">${d}</span></div>`).join("")}
+        ["🚫MMP","Gas methods: reservoir pressure < MMP → Tech capped at soft-cap."],
+        ["🚫Frac","Fractured carbonate: all methods hard-capped except Low-Sal. WF."],
+        ["⚠Log","Logistics at or below soft-cap (usually from a critical No answer)."],
+        ["💧WT","Water quality issue: high TDS/divalents/OiW/solids. Informational only."],
+      ].map(([f,d])=>`<div style="display:flex;gap:10px"><span class="flag" style="white-space:nowrap;align-self:flex-start;margin-top:2px">${f}</span><span style="font-size:13px;color:var(--text2)">${d}</span></div>`).join("")}
     </div>
   </div>
-
   <div class="card">
-    <div class="card-header"><span class="card-title">Sources & References</span></div>
-    <div class="card-body" style="font-size:13px;color:var(--text2);line-height:1.8">
-      Taber et al. (1997) — SPE criteria tables<br>
+    <div class="card-header"><span class="card-title">References</span></div>
+    <div class="card-body" style="font-size:13px;color:var(--text2);line-height:1.9">
+      Taber, Martin & Seright (1997) — SPE-35385 screening criteria<br>
       Sheng (2014) — Enhanced Oil Recovery Field Case Studies<br>
-      Al Adasani & Bai (2011) — EOR screening database analysis<br>
-      Hartono et al. (2017) — Chemical EOR screening<br>
+      Al Adasani & Bai (2011) — EOR screening database<br>
       Seright et al. (2021–2023) — Polymer flooding guidelines<br>
-      Delamaide (2018) — Polymer flood field performance<br>
-      Dupuis et al.; Thomas et al. — Field experience datasets<br>
-      <br>
-      <strong style="color:var(--text)">Important limitation:</strong> This tool provides indicative screening only.
-      Validate with detailed reservoir engineering, lab corefloods, and economics before pilot decisions.
-      MMP should be measured (slim-tube) or estimated via Cronquist/Glaso/Yelin correlations.
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header"><span class="card-title">Open Source & Collaboration</span></div>
-    <div class="card-body" style="font-size:13px;color:var(--text2);line-height:1.8">
-      This tool is MIT-licensed and hosted on GitHub.<br>
-      <strong style="color:var(--text)">How to contribute:</strong>
-      <ul style="margin:10px 0 0 18px;display:grid;gap:6px">
-        <li>Fork the repository and submit a Pull Request with new screening criteria or field data</li>
-        <li>Open an Issue to propose new EOR methods, parameters, or scoring modifications</li>
-        <li>Update <code style="font-family:var(--font-mono);background:var(--bg3);padding:1px 5px;border-radius:3px">scoringEngine.js</code> — all scoring logic is there, well-commented</li>
-        <li>Link a Google Sheet as a live criteria database (see README for integration guide)</li>
-      </ul>
+      Thomas & Seright (2026) — Polymer bank size field data<br>
+      <br><strong style="color:var(--text)">Limitation:</strong> Indicative only. Validate with lab corefloods, detailed reservoir engineering, and economics.
     </div>
   </div>
 </div>`;
 }
 
 function buildFooter() {
-  return `
-<footer class="footer">
-  <span>EOR Screening Tool v5 — Open Source (MIT) — Based on Taber et al. (1997) and Thomas et al.</span>
-  <span><a href="https://github.com/your-org/eor-screening-tool" target="_blank">GitHub Repository</a> · Indicative screening only — validate with reservoir engineering</span>
+  return `<footer class="footer">
+  <span>EOR Screening Tool v5 — MIT License — Thomas et al. / Taber et al. (1997)</span>
+  <span><a href="https://github.com/antoinethom-lab/eor-screening-tool" target="_blank">GitHub</a> · Indicative only</span>
 </footer>`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// EVENT HANDLERS (attached after render)
+// EVENT HANDLERS
 // ═══════════════════════════════════════════════════════════════════════════
 
-function attachEvents() {
-  // Nothing extra needed — all handlers use global functions via inline onclick
-}
+window.setTab = t => { state.activeTab = t; render(); };
 
-window.setTab = function(t) { state.activeTab = t; render(); };
+window.selectField = i => { state.activeFieldIdx = i; render(); };
 
-window.setField = function(key, val) {
-  state.fieldData[key] = val;
-  // Don't re-render — let user type freely
-};
-
-window.resetField = function() {
-  state.fieldData = {};
+window.addField = () => {
+  if (state.fields.length >= 8) return;
+  state.fields.push(newField("Field " + (state.fields.length + 1)));
+  state.activeFieldIdx = state.fields.length - 1;
   render();
 };
 
-window.runAndShowResults = function() {
+window.removeField = i => {
+  state.fields.splice(i, 1);
+  state.activeFieldIdx = Math.min(state.activeFieldIdx, state.fields.length - 1);
+  render();
+};
+
+window.clearField = () => {
+  const id = state.fields[state.activeFieldIdx]._id;
+  const name = state.fields[state.activeFieldIdx].fieldName;
+  state.fields[state.activeFieldIdx] = newField(name);
+  state.fields[state.activeFieldIdx]._id = id; // keep same id so logistics persist
+  render();
+};
+
+window.duplicateField = () => {
+  if (state.fields.length >= 8) return;
+  const src = state.fields[state.activeFieldIdx];
+  const copy = { ...src, _id: Math.random().toString(36).slice(2), fieldName: (src.fieldName||"Field") + " (copy)" };
+  state.fields.splice(state.activeFieldIdx + 1, 0, copy);
+  state.activeFieldIdx = state.activeFieldIdx + 1;
+  render();
+};
+
+window.setField = (key, val) => {
+  state.fields[state.activeFieldIdx][key] = val;
+};
+
+window.runAndShowResults = () => {
   runScreening();
   state.activeTab = "results";
   render();
 };
 
-window.setLogistics = function(method, key, val, isGeneral) {
-  if (isGeneral === "true" || isGeneral === true) {
+window.setLogistics = (method, key, val, isGeneral) => {
+  if (isGeneral === "true") {
     state.generalLogistics[key] = val;
   } else {
-    if (!state.logistics[method]) state.logistics[method] = {};
-    state.logistics[method][key] = val;
+    const fid = state.fields[state.activeFieldIdx]._id;
+    if (!state.fieldLogistics[fid]) state.fieldLogistics[fid] = {};
+    if (!state.fieldLogistics[fid][method]) state.fieldLogistics[fid][method] = {};
+    state.fieldLogistics[fid][method][key] = val;
   }
   render();
 };
 
-window.toggleAccordion = function(key) {
+window.toggleAccordion = key => {
   state.openAccordions[key] = !state.openAccordions[key];
   render();
 };
 
-window.setCriteria = function(method, param, field, value) {
+window.setCriteria = (method, param, field, value) => {
   state.criteria[method][param][field] = value;
 };
 
-window.resetCriteria = function() {
+window.resetCriteria = () => {
   state.criteria = JSON.parse(JSON.stringify(SCREENING_CRITERIA));
   render();
 };
 
-window.setTuning = function(key, val) {
+window.setTuning = (key, val) => {
   state.tuning[key] = val;
   render();
 };
 
-window.setRockMod = function(method, val) {
+window.setRockMod = (method, val) => {
   state.tuning.rockModifiers[method] = val;
 };
 
-window.resetTuning = function() {
+window.resetTuning = () => {
   state.tuning = JSON.parse(JSON.stringify(DEFAULT_TUNING));
   render();
 };
 
-window.exportJSON = function() {
-  const data = {
-    fieldData: state.fieldData,
-    logistics: state.logistics,
-    generalLogistics: state.generalLogistics,
-    criteria: state.criteria,
-    tuning: state.tuning,
-    results: state.results,
-    exportedAt: new Date().toISOString(),
-  };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type:"application/json" });
+window.exportJSON = e => {
+  e.preventDefault();
+  const data = { fields: state.fields, fieldLogistics: state.fieldLogistics,
+    generalLogistics: state.generalLogistics, criteria: state.criteria,
+    tuning: state.tuning, allResults: state.allResults, exportedAt: new Date().toISOString() };
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `eor-screening-${(state.fieldData.fieldName||"field").replace(/\s+/g,"-")}-${new Date().toISOString().slice(0,10)}.json`;
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)], {type:"application/json"}));
+  a.download = `eor-screening-${new Date().toISOString().slice(0,10)}.json`;
   a.click();
 };
 
-window.exportCSV = function() {
-  if (!state.results) { alert("Run screening first."); return; }
-  const rows = [["Method","Category","Technical","Logistics","Combined","Candidate","Flags"]];
-  for (const [m, r] of Object.entries(state.results)) {
-    rows.push([m, METHOD_CATEGORIES[m], r.tech, r.log, r.combined,
-      r.isCandidate?"Yes":"No", r.flags.join("|")]);
+window.exportCSV = e => {
+  e.preventDefault();
+  if (!state.allResults) { alert("Run screening first."); return; }
+  const names = state.fields.map((f,i) => f.fieldName||"Field "+(i+1));
+  const rows = [["Method","Category",...names.flatMap(n=>[n+" Tech",n+" Log",n+" Combined",n+" Flags"])]];
+  for (const method of EOR_METHODS) {
+    rows.push([method, METHOD_CATEGORIES[method],
+      ...state.allResults.flatMap(r => [r[method].tech, r[method].log, r[method].combined, r[method].flags.join("|")])
+    ]);
   }
-  const csv = rows.map(r=>r.join(",")).join("\n");
-  const blob = new Blob([csv], {type:"text/csv"});
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `eor-screening-${(state.fieldData.fieldName||"field").replace(/\s+/g,"-")}-${new Date().toISOString().slice(0,10)}.csv`;
+  a.href = URL.createObjectURL(new Blob([rows.map(r=>r.join(",")).join("\n")], {type:"text/csv"}));
+  a.download = `eor-screening-${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
 };
 
