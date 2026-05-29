@@ -990,7 +990,7 @@ function computeTechnicalScore(fieldData, methodKey, criteria) {
   let weightedSum = 0, totalWeight = 0;
   for (const [pk, spec] of Object.entries(params)) {
     if (spec.weight === 0) continue;
-    const val = parseFloat(fieldData[pk]);
+    const val = pf(fieldData[pk]);
     if (isNaN(val)) continue;
     const raw = scoreParameter(val, spec);
     if (raw === null) continue;
@@ -1029,9 +1029,9 @@ function applyRockModifier(score, fieldData, method, tuning) {
 function applyMMPCap(score, fieldData, method, tuning) {
   const GAS = ["Miscible CO2","Miscible HC Gas","N2 Injection"];
   if (!GAS.includes(method)) return score;
-  const pres = parseFloat(fieldData.pres ?? 0);
+  const pres = pf(fieldData.pres ?? 0);
   const mmpKey = method === "Miscible CO2" ? "mmp_co2" : method === "Miscible HC Gas" ? "mmp_hcgas" : "mmp_n2";
-  const mmp = parseFloat(fieldData[mmpKey] ?? 999);
+  const mmp = pf(fieldData[mmpKey] ?? 999);
   return pres < mmp ? Math.min(score, tuning.techSoftCap) : score;
 }
 
@@ -1039,22 +1039,24 @@ function computeFlags(fieldData, method, tech, log, tuning) {
   const flags = [];
   const GAS = ["Miscible CO2","Miscible HC Gas","N2 Injection"];
   if (GAS.includes(method)) {
-    const pres = parseFloat(fieldData.pres ?? 0);
+    const pres = pf(fieldData.pres ?? 0);
     const mmpKey = method==="Miscible CO2"?"mmp_co2":method==="Miscible HC Gas"?"mmp_hcgas":"mmp_n2";
-    if (pres < parseFloat(fieldData[mmpKey] ?? 999)) flags.push("🚫MMP");
+    if (pres < pf(fieldData[mmpKey] ?? 999)) flags.push("🚫MMP");
   }
   if (fieldData.rockType === "Fract. Carb." && method !== "Low-Sal. WF") flags.push("🚫Frac");
   if (log <= tuning.logSoftCap + 1) flags.push("⚠Log");
-  const tds    = parseFloat(fieldData.tds_formation ?? 0);
-  const divs   = parseFloat(fieldData.divalents ?? 0);
-  const oiw    = parseFloat(fieldData.oiw ?? 0);
-  const solids = parseFloat(fieldData.suspended ?? 0);
-  const perm   = parseFloat(fieldData.perm ?? 9999);
+  const tds    = pf(fieldData.tds_formation ?? 0);
+  const divs   = pf(fieldData.divalents ?? 0);
+  const oiw    = pf(fieldData.oiw ?? 0);
+  const solids = pf(fieldData.suspended ?? 0);
+  const perm   = pf(fieldData.perm ?? 9999);
   if ((tds>tuning.wt_tds&&perm<tuning.wt_perm)||divs>tuning.wt_divalents||oiw>tuning.wt_oiw||solids>tuning.wt_solids)
     flags.push("💧WT");
   return flags;
 }
 
+// Comma-safe parseFloat: accepts both "0.6" and "0,6"
+function pf(v) { return parseFloat(String(v).replace(',', '.')); }
 
 function screenField(fieldData, fieldLogistics={}, generalLogistics={}, criteria=SCREENING_CRITERIA, tuning=DEFAULT_TUNING) {
   const results = {};
@@ -1278,7 +1280,7 @@ function buildInputSection(title, fields, scored=false) {
         return `
 <div class="field-group">
   <label class="field-label">${f.label}${f.unit?`<span class="field-unit">${f.unit}</span>`:""}${f.note?`<span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-box">${f.note}</span></span>`:""}</label>
-  <input class="field-input" type="number" step="any" value="${val}" data-key="${f.key}" oninput="setField('${f.key}',parseFloat(this.value))">
+  <input class="field-input" type="number" step="any" value="${val}" data-key="${f.key}" oninput="setField('${f.key}',pf(this.value))">
 </div>`;
       }).join("")}
     </div>
@@ -1457,18 +1459,18 @@ function buildCriteriaTable(method) {
         ${PARAMETERS.map(p => {
           const spec = crit[p.key];
           if (!spec) return "";
-          const fieldVal = parseFloat(state.fieldData[p.key]);
+          const fieldVal = pf(state.fieldData[p.key]);
           const rawScore = isNaN(fieldVal) ? null : scoreParameter(fieldVal, spec);
           return `
         <tr>
           <td style="font-weight:500">${p.label} <span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-box">${PARAM_NOTES[p.key]||""}</span></span></td>
           <td><span class="field-unit">${p.unit}</span></td>
           <td><input class="weight-input" type="number" step="any" value="${spec.min}"
-            onchange="setCriteria('${method}','${p.key}','min',parseFloat(this.value))"></td>
+            onchange="setCriteria('${method}','${p.key}','min',pf(this.value))"></td>
           <td><input class="weight-input" type="number" step="any" value="${spec.avg}"
-            onchange="setCriteria('${method}','${p.key}','avg',parseFloat(this.value))"></td>
+            onchange="setCriteria('${method}','${p.key}','avg',pf(this.value))"></td>
           <td><input class="weight-input" type="number" step="any" value="${spec.max}"
-            onchange="setCriteria('${method}','${p.key}','max',parseFloat(this.value))"></td>
+            onchange="setCriteria('${method}','${p.key}','max',pf(this.value))"></td>
           <td>
             <select class="field-input" style="width:70px;padding:3px 6px;font-size:12px"
               onchange="setCriteria('${method}','${p.key}','weight',parseInt(this.value))">
@@ -1526,7 +1528,7 @@ function buildTuning() {
           <label class="field-label">${m} <span class="cat-pill ${catClass(METHOD_CATEGORIES[m])} " style="font-size:9px">${METHOD_CATEGORIES[m]}</span></label>
           <input class="field-input" type="number" min="0" max="1" step="0.05"
             value="${t.rockModifiers[m]}"
-            onchange="setRockMod('${m}',parseFloat(this.value))">
+            onchange="setRockMod('${m}',pf(this.value))">
         </div>`).join("")}
       </div>
     </div>
@@ -1562,7 +1564,7 @@ function buildTuningNum(key, label, desc, val) {
   <label class="tuning-label">${label}</label>
   <div class="tuning-desc">${desc}</div>
   <input class="field-input" type="number" step="any" value="${val}"
-    onchange="setTuning('${key}',parseFloat(this.value))">
+    onchange="setTuning('${key}',pf(this.value))">
 </div>`;
 }
 
