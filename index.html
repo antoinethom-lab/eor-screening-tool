@@ -1,0 +1,1904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EOR Screening Tool — Open Source</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:         #0d1117;
+  --bg2:        #161b22;
+  --bg3:        #1c2333;
+  --border:     #30363d;
+  --border2:    #21262d;
+  --text:       #e6edf3;
+  --text2:      #8b949e;
+  --text3:      #6e7681;
+  --accent:     #58a6ff;
+  --accent2:    #1f6feb;
+  --green:      #3fb950;
+  --orange:     #d29922;
+  --red:        #f85149;
+  --purple:     #bc8cff;
+  --teal:       #39d353;
+  --yellow:     #e3b341;
+
+  --cat-gas:    #58a6ff;
+  --cat-chem:   #bc8cff;
+  --cat-therm:  #f97316;
+  --cat-ior:    #3fb950;
+
+  --font-mono:  'IBM Plex Mono', monospace;
+  --font-sans:  'IBM Plex Sans', sans-serif;
+  --font-head:  'Space Grotesk', sans-serif;
+
+  --radius:     6px;
+  --radius-lg:  10px;
+  --shadow:     0 4px 24px rgba(0,0,0,0.5);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ── Layout ── */
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+}
+
+header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logo {
+  font-family: var(--font-head);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.logo-badge {
+  background: var(--accent2);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 20px;
+  letter-spacing: 0.05em;
+}
+
+.header-links {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.header-links a {
+  color: var(--text2);
+  text-decoration: none;
+  font-size: 13px;
+  transition: color 0.15s;
+}
+.header-links a:hover { color: var(--accent); }
+
+/* ── Nav Tabs ── */
+.tabs {
+  display: flex;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  gap: 2px;
+  overflow-x: auto;
+}
+.tab {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text2);
+  cursor: pointer;
+  border: none;
+  background: none;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+  font-family: var(--font-sans);
+}
+.tab:hover { color: var(--text); }
+.tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ── Main Content ── */
+.main {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.section-title {
+  font-family: var(--font-head);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.section-sub {
+  font-size: 13px;
+  color: var(--text2);
+  margin-bottom: 20px;
+}
+
+/* ── Cards ── */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.card-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg3);
+}
+.card-title {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.card-body { padding: 18px; }
+
+/* ── Forms ── */
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+.field-group { display: flex; flex-direction: column; gap: 5px; }
+.field-label {
+  font-size: 12px;
+  color: var(--text2);
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.field-unit {
+  font-size: 10px;
+  color: var(--text3);
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+.field-input {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 7px 10px;
+  border-radius: var(--radius);
+  width: 100%;
+  transition: border-color 0.15s;
+  -moz-appearance: textfield;
+}
+.field-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(88,166,255,0.1);
+}
+.field-input::-webkit-outer-spin-button,
+.field-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+select.field-input { appearance: none; cursor: pointer; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+  font-family: var(--font-sans);
+}
+.btn-primary {
+  background: var(--accent2);
+  color: #fff;
+  border-color: var(--accent);
+}
+.btn-primary:hover { background: var(--accent); }
+.btn-secondary {
+  background: var(--bg3);
+  color: var(--text);
+  border-color: var(--border);
+}
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+.btn-danger {
+  background: transparent;
+  color: var(--red);
+  border-color: var(--border);
+}
+.btn-danger:hover { background: rgba(248,81,73,0.1); }
+
+/* ── Score Bars ── */
+.score-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.score-bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--bg3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.score-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.score-value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text);
+  min-width: 38px;
+  text-align: right;
+}
+
+/* ── Results Table ── */
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.results-table th {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text2);
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg3);
+  white-space: nowrap;
+}
+.results-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border2);
+  vertical-align: middle;
+}
+.results-table tr:last-child td { border-bottom: none; }
+.results-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* ── Category Pills ── */
+.cat-pill {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.cat-gas   { color: var(--cat-gas);  border-color: var(--cat-gas);  background: rgba(88,166,255,0.1); }
+.cat-chem  { color: var(--cat-chem); border-color: var(--cat-chem); background: rgba(188,140,255,0.1); }
+.cat-therm { color: var(--cat-therm); border-color: var(--cat-therm); background: rgba(249,115,22,0.1); }
+.cat-ior   { color: var(--cat-ior);  border-color: var(--cat-ior);  background: rgba(63,185,80,0.1); }
+
+/* ── Flag Badges ── */
+.flags { display: flex; gap: 4px; flex-wrap: wrap; }
+.flag {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(248,81,73,0.15);
+  color: var(--red);
+  border: 1px solid rgba(248,81,73,0.3);
+  white-space: nowrap;
+}
+.flag-warn {
+  background: rgba(210,153,34,0.15);
+  color: var(--orange);
+  border-color: rgba(210,153,34,0.3);
+}
+
+/* ── Logistics Grid ── */
+.logistics-section { margin-bottom: 24px; }
+.logistics-section-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border2);
+}
+.logistics-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(48,54,61,0.5);
+}
+.logistics-q {
+  font-size: 13px;
+  color: var(--text);
+  flex: 1;
+}
+.logistics-q.soft-cap { color: var(--yellow); }
+.logistics-toggle {
+  display: flex;
+  gap: 4px;
+}
+.toggle-btn {
+  padding: 3px 10px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text2);
+  transition: all 0.15s;
+  font-family: var(--font-sans);
+}
+.toggle-btn:hover { border-color: var(--text2); color: var(--text); }
+.toggle-btn.active-yes  { background: rgba(63,185,80,0.15);  color: var(--green);  border-color: var(--green); }
+.toggle-btn.active-part { background: rgba(210,153,34,0.15); color: var(--orange); border-color: var(--orange); }
+.toggle-btn.active-no   { background: rgba(248,81,73,0.15);  color: var(--red);    border-color: var(--red); }
+
+/* ── Weights Editor ── */
+.weights-grid {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto auto auto;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.weights-header {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text2);
+  padding: 8px 12px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+}
+.weights-row {
+  display: contents;
+}
+.weights-row:hover > div { background: rgba(255,255,255,0.02); }
+.weights-cell {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border2);
+  display: flex;
+  align-items: center;
+}
+.weight-input {
+  width: 52px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 4px 6px;
+  border-radius: var(--radius);
+  text-align: center;
+}
+.weight-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ── Weight sliders ── */
+.weight-slider {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ── Tuning Panel ── */
+.tuning-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+.tuning-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tuning-label {
+  font-size: 12px;
+  color: var(--text2);
+  font-family: var(--font-mono);
+}
+.tuning-desc {
+  font-size: 11px;
+  color: var(--text3);
+  line-height: 1.4;
+}
+
+/* ── Strategic Fit ── */
+.strategic-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.strategic-score-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  text-align: center;
+}
+.strategic-score-label {
+  font-size: 11px;
+  color: var(--text2);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 6px;
+}
+.strategic-score-value {
+  font-family: var(--font-head);
+  font-size: 28px;
+  font-weight: 700;
+}
+
+/* ── Top Methods Podium ── */
+.podium {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.podium-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.podium-card.rank-1 { border-color: var(--yellow); }
+.podium-card.rank-2 { border-color: var(--text3); }
+.podium-card.rank-3 { border-color: #7d5c3e; }
+.podium-rank {
+  font-family: var(--font-head);
+  font-size: 32px;
+  position: absolute;
+  right: 14px;
+  top: 10px;
+  opacity: 0.25;
+}
+.podium-method {
+  font-family: var(--font-head);
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.podium-score {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+/* ── Tooltip ── */
+.tooltip-wrap { position: relative; display: inline-flex; }
+.tooltip-icon {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text3);
+  font-size: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+.tooltip-box {
+  display: none;
+  position: absolute;
+  left: 20px;
+  top: -4px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text2);
+  white-space: normal;
+  width: 260px;
+  z-index: 50;
+  box-shadow: var(--shadow);
+  line-height: 1.5;
+}
+.tooltip-wrap:hover .tooltip-box { display: block; }
+
+/* ── Info Box ── */
+.info-box {
+  background: rgba(88,166,255,0.07);
+  border: 1px solid rgba(88,166,255,0.2);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+.info-box strong { color: var(--accent); }
+
+/* ── Chip ── */
+.chip {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  color: var(--text2);
+  background: var(--bg3);
+}
+
+/* ── Range display ── */
+.range-display {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text3);
+}
+
+/* ── Loading state ── */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text2);
+}
+.empty-state h3 {
+  font-family: var(--font-head);
+  font-size: 18px;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+/* ── Score color helper ── */
+.score-high { color: var(--green); }
+.score-mid  { color: var(--orange); }
+.score-low  { color: var(--red); }
+
+/* ── Accordion ── */
+.accordion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border2);
+  user-select: none;
+}
+.accordion-header:hover { background: rgba(255,255,255,0.02); }
+.accordion-header-text {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+}
+.accordion-chevron {
+  color: var(--text2);
+  transition: transform 0.2s;
+}
+.accordion-chevron.open { transform: rotate(90deg); }
+.accordion-body { padding: 16px; }
+
+/* ── Scrollbars ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── Footer ── */
+.footer {
+  border-top: 1px solid var(--border);
+  background: var(--bg2);
+  padding: 16px 24px;
+  font-size: 12px;
+  color: var(--text3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.footer a { color: var(--accent); text-decoration: none; }
+.footer a:hover { text-decoration: underline; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .main { padding: 16px; }
+  .field-grid { grid-template-columns: 1fr 1fr; }
+  .strategic-grid { grid-template-columns: 1fr; }
+  .podium { grid-template-columns: 1fr; }
+  .weights-grid { grid-template-columns: 1fr auto auto; }
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script type="module">
+// ═══════════════════════════════════════════════════════════════════════════
+// SCORING ENGINE (inline — full module for browser compatibility)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const PARAMETERS = [
+  { key: "api",       label: "API Gravity",                     unit: "°API"     },
+  { key: "viscosity", label: "Oil Viscosity (reservoir cond.)", unit: "cP"       },
+  { key: "porosity",  label: "Porosity",                        unit: "%"        },
+  { key: "so",        label: "Oil Saturation",                  unit: "%"        },
+  { key: "depth",     label: "Depth (mid-perf TVDss)",          unit: "m"        },
+  { key: "temp",      label: "Reservoir Temperature",           unit: "°C"       },
+  { key: "perm",      label: "Horizontal Permeability",         unit: "mD"       },
+  { key: "netpay",    label: "Net Pay Thickness",               unit: "m"        },
+  { key: "dp",        label: "Dykstra-Parsons Coeff.",          unit: "0–1"      },
+  { key: "tan",       label: "TAN (Total Acid Number)",         unit: "mg KOH/g" },
+  { key: "tds",       label: "Injection Water TDS",             unit: "mg/L"     },
+  { key: "divalents", label: "Divalent Cations (Ca²⁺+Mg²⁺)",   unit: "mg/L"     },
+];
+
+const PARAM_NOTES = {
+  api:       "API Gravity measures oil density. Higher API = lighter oil. Critical for gas injection methods.",
+  viscosity: "Oil viscosity at reservoir conditions. Low viscosity favors gas injection; high viscosity favors thermal or polymer methods.",
+  porosity:  "Effective porosity (%). Drives pore volume available for EOR fluid contact.",
+  so:        "Current oil saturation (%) at EOR initiation. More oil remaining = more recovery potential.",
+  depth:     "Mid-perforation depth TVDss. Governs pressure, heat loss (thermal), and MMP feasibility.",
+  temp:      "Average reservoir temperature. Critical for polymer stability (≤120°C) and ASP chemistry (≤93°C).",
+  perm:      "Horizontal permeability (geometric mean). Governs injectivity and recovery efficiency.",
+  netpay:    "Net pay thickness. 999 means no upper limit in the scoring function.",
+  dp:        "Dykstra-Parsons coefficient: 0=perfectly uniform, 1=highly heterogeneous. High DP favors conformance methods.",
+  tan:       "Total Acid Number. Critical for ASP (drives IFT reduction). Target TAN > 0.2 mg KOH/g for ASP.",
+  tds:       "Total Dissolved Solids in injection water. High TDS challenges polymer and ASP performance.",
+  divalents: "Ca²⁺+Mg²⁺ divalent cations. Most important for polymer/chemicals — precipitate surfactant and reduce polymer viscosity.",
+};
+
+const SCREENING_CRITERIA = {
+  "Miscible CO2": {
+    api:       { min:22,   avg:36,    max:45,     weight:4 },
+    viscosity: { min:0.1,  avg:1.7,   max:10,     weight:4 },
+    porosity:  { min:3,    avg:15,    max:37,     weight:2 },
+    so:        { min:25,   avg:53,    max:89,     weight:3 },
+    depth:     { min:600,  avg:1880,  max:4070,   weight:4 },
+    temp:      { min:20,   avg:58,    max:121,    weight:2 },
+    perm:      { min:1,    avg:60,    max:1000,   weight:2 },
+    netpay:    { min:3,    avg:15,    max:999,    weight:1 },
+    dp:        { min:0,    avg:0.5,   max:0.85,   weight:3 },
+    tan:       { min:0,    avg:1,     max:5,      weight:0 },
+    tds:       { min:0,    avg:50000, max:300000, weight:0 },
+    divalents: { min:0,    avg:5000,  max:50000,  weight:0 },
+  },
+  "Immiscible CO2": {
+    api:       { min:11,   avg:22,    max:35,     weight:3 },
+    viscosity: { min:0.5,  avg:65,    max:600,    weight:2 },
+    porosity:  { min:17,   avg:26,    max:32,     weight:1 },
+    so:        { min:15,   avg:63,    max:78,     weight:3 },
+    depth:     { min:350,  avg:1030,  max:2590,   weight:2 },
+    temp:      { min:20,   avg:51,    max:92,     weight:1 },
+    perm:      { min:10,   avg:217,   max:1000,   weight:2 },
+    netpay:    { min:3,    avg:10,    max:999,    weight:1 },
+    dp:        { min:0,    avg:0.6,   max:0.85,   weight:3 },
+    tan:       { min:0,    avg:1,     max:5,      weight:0 },
+    tds:       { min:0,    avg:50000, max:300000, weight:0 },
+    divalents: { min:0,    avg:5000,  max:50000,  weight:0 },
+  },
+  "Miscible HC Gas": {
+    api:       { min:23,   avg:40,    max:45,     weight:4 },
+    viscosity: { min:0.04, avg:1,     max:3,      weight:3 },
+    porosity:  { min:4,    avg:15,    max:45,     weight:2 },
+    so:        { min:30,   avg:77,    max:98,     weight:3 },
+    depth:     { min:1220, avg:1887,  max:4845,   weight:4 },
+    temp:      { min:30,   avg:95,    max:165,    weight:2 },
+    perm:      { min:0.1,  avg:726,   max:5000,   weight:2 },
+    netpay:    { min:3,    avg:10,    max:999,    weight:1 },
+    dp:        { min:0,    avg:0.5,   max:0.85,   weight:2 },
+    tan:       { min:0,    avg:1,     max:5,      weight:0 },
+    tds:       { min:0,    avg:50000, max:300000, weight:0 },
+    divalents: { min:0,    avg:5000,  max:50000,  weight:0 },
+  },
+  "WAG": {
+    api:       { min:25,   avg:42,    max:45,     weight:3 },
+    viscosity: { min:0.07, avg:0.2,   max:1,      weight:3 },
+    porosity:  { min:11,   avg:18,    max:24,     weight:2 },
+    so:        { min:40,   avg:75,    max:80,     weight:3 },
+    depth:     { min:1830, avg:2775,  max:5640,   weight:3 },
+    temp:      { min:80,   avg:110,   max:123,    weight:1 },
+    perm:      { min:50,   avg:143,   max:1000,   weight:2 },
+    netpay:    { min:5,    avg:15,    max:999,    weight:2 },
+    dp:        { min:0,    avg:0.5,   max:0.85,   weight:2 },
+    tan:       { min:0,    avg:1,     max:5,      weight:0 },
+    tds:       { min:0,    avg:50000, max:300000, weight:0 },
+    divalents: { min:0,    avg:5000,  max:50000,  weight:0 },
+  },
+  "N2 Injection": {
+    api:       { min:35,   avg:40,    max:45,     weight:5 },
+    viscosity: { min:0.07, avg:0.2,   max:0.4,    weight:4 },
+    porosity:  { min:7,    avg:11,    max:14,     weight:1 },
+    so:        { min:40,   avg:76,    max:80,     weight:3 },
+    depth:     { min:1830, avg:3754,  max:5640,   weight:4 },
+    temp:      { min:70,   avg:130,   max:163,    weight:2 },
+    perm:      { min:0.2,  avg:15,    max:35,     weight:1 },
+    netpay:    { min:3,    avg:10,    max:999,    weight:1 },
+    dp:        { min:0,    avg:0.5,   max:0.85,   weight:1 },
+    tan:       { min:0,    avg:1,     max:5,      weight:0 },
+    tds:       { min:0,    avg:50000, max:300000, weight:0 },
+    divalents: { min:0,    avg:5000,  max:50000,  weight:0 },
+  },
+  "Polymer Flood": {
+    api:       { min:13,   avg:33,    max:45,     weight:1 },
+    viscosity: { min:0.4,  avg:500,   max:15000,  weight:3 },
+    porosity:  { min:10,   avg:23,    max:33,     weight:3 },
+    so:        { min:35,   avg:72,    max:92,     weight:3 },
+    depth:     { min:213,  avg:2015,  max:2926,   weight:1 },
+    temp:      { min:20,   avg:60,    max:120,    weight:3 },
+    perm:      { min:2,    avg:817,   max:15000,  weight:3 },
+    netpay:    { min:3,    avg:10,    max:999,    weight:1 },
+    dp:        { min:0,    avg:0.6,   max:0.95,   weight:3 },
+    tan:       { min:0,    avg:1,     max:5,      weight:0 },
+    tds:       { min:0,    avg:30000, max:250000, weight:4 },
+    divalents: { min:0,    avg:1000,  max:25000,  weight:5 },
+  },
+  "ASP Flood": {
+    api:       { min:20,   avg:33,    max:45,     weight:3 },
+    viscosity: { min:1,    avg:50,    max:500,    weight:3 },
+    porosity:  { min:15,   avg:27,    max:35,     weight:2 },
+    so:        { min:35,   avg:63,    max:75,     weight:3 },
+    depth:     { min:152,  avg:950,   max:2743,   weight:2 },
+    temp:      { min:20,   avg:49,    max:93,     weight:5 },
+    perm:      { min:10,   avg:487,   max:1520,   weight:3 },
+    netpay:    { min:3,    avg:10,    max:999,    weight:1 },
+    dp:        { min:0,    avg:0.6,   max:0.95,   weight:2 },
+    tan:       { min:0.2,  avg:1,     max:5,      weight:5 },
+    tds:       { min:0,    avg:20000, max:80000,  weight:5 },
+    divalents: { min:0,    avg:500,   max:5000,   weight:5 },
+  },
+  "Surfactant-Polymer": {
+    api:       { min:20,   avg:33,    max:45,     weight:3 },
+    viscosity: { min:1,    avg:11,    max:35,     weight:3 },
+    porosity:  { min:15,   avg:16,    max:20,     weight:2 },
+    so:        { min:20,   avg:48,    max:53,     weight:3 },
+    depth:     { min:190,  avg:943,   max:2743,   weight:2 },
+    temp:      { min:25,   avg:59,    max:71,     weight:5 },
+    perm:      { min:10,   avg:55,    max:500,    weight:3 },
+    netpay:    { min:3,    avg:10,    max:999,    weight:1 },
+    dp:        { min:0,    avg:0.6,   max:0.95,   weight:2 },
+    tan:       { min:0,    avg:1,     max:5,      weight:0 },
+    tds:       { min:0,    avg:15000, max:50000,  weight:3 },
+    divalents: { min:0,    avg:500,   max:5000,   weight:3 },
+  },
+  "Steam Flood": {
+    api:       { min:8,    avg:14,    max:25,     weight:5 },
+    viscosity: { min:10,   avg:1000,  max:200000, weight:4 },
+    porosity:  { min:25,   avg:32,    max:65,     weight:3 },
+    so:        { min:40,   avg:66,    max:90,     weight:3 },
+    depth:     { min:60,   avg:479,   max:1370,   weight:5 },
+    temp:      { min:10,   avg:79,    max:177,    weight:1 },
+    perm:      { min:200,  avg:2573,  max:15000,  weight:4 },
+    netpay:    { min:6,    avg:20,    max:999,    weight:3 },
+    dp:        { min:0,    avg:0.7,   max:0.99,   weight:1 },
+    tan:       { min:0,    avg:1,     max:5,      weight:0 },
+    tds:       { min:0,    avg:50000, max:300000, weight:0 },
+    divalents: { min:0,    avg:5000,  max:50000,  weight:0 },
+  },
+  "In-Situ Combustion": {
+    api:       { min:10,   avg:20,    max:40,     weight:3 },
+    viscosity: { min:5,    avg:200,   max:5000,   weight:3 },
+    porosity:  { min:14,   avg:23,    max:35,     weight:2 },
+    so:        { min:50,   avg:70,    max:94,     weight:3 },
+    depth:     { min:120,  avg:1698,  max:3505,   weight:3 },
+    temp:      { min:15,   avg:67,    max:110,    weight:1 },
+    perm:      { min:10,   avg:1033,  max:15000,  weight:3 },
+    netpay:    { min:3,    avg:10,    max:999,    weight:2 },
+    dp:        { min:0,    avg:0.6,   max:0.85,   weight:2 },
+    tan:       { min:0,    avg:1,     max:5,      weight:0 },
+    tds:       { min:0,    avg:50000, max:300000, weight:0 },
+    divalents: { min:0,    avg:5000,  max:50000,  weight:0 },
+  },
+  "Hot Water Flood": {
+    api:       { min:8,    avg:15,    max:30,     weight:3 },
+    viscosity: { min:10,   avg:3351,  max:200000, weight:3 },
+    porosity:  { min:25,   avg:31,    max:37,     weight:2 },
+    so:        { min:15,   avg:62,    max:85,     weight:3 },
+    depth:     { min:152,  avg:524,   max:1370,   weight:3 },
+    temp:      { min:10,   avg:37,    max:138,    weight:1 },
+    perm:      { min:200,  avg:2943,  max:6000,   weight:3 },
+    netpay:    { min:3,    avg:10,    max:999,    weight:1 },
+    dp:        { min:0,    avg:0.7,   max:0.99,   weight:1 },
+    tan:       { min:0,    avg:1,     max:5,      weight:0 },
+    tds:       { min:0,    avg:50000, max:300000, weight:0 },
+    divalents: { min:0,    avg:5000,  max:50000,  weight:0 },
+  },
+  "Low-Sal. WF": {
+    api:       { min:10,   avg:30,    max:45,     weight:2 },
+    viscosity: { min:0.2,  avg:5,     max:2000,   weight:2 },
+    porosity:  { min:10,   avg:20,    max:35,     weight:2 },
+    so:        { min:30,   avg:55,    max:90,     weight:3 },
+    depth:     { min:100,  avg:1500,  max:5000,   weight:1 },
+    temp:      { min:20,   avg:60,    max:150,    weight:2 },
+    perm:      { min:1,    avg:100,   max:5000,   weight:2 },
+    netpay:    { min:3,    avg:10,    max:999,    weight:1 },
+    dp:        { min:0,    avg:0.7,   max:0.99,   weight:1 },
+    tan:       { min:0,    avg:1,     max:5,      weight:0 },
+    tds:       { min:0,    avg:5000,  max:40000,  weight:2 },
+    divalents: { min:0,    avg:500,   max:5000,   weight:2 },
+  },
+};
+
+const EOR_METHODS = Object.keys(SCREENING_CRITERIA);
+
+const METHOD_CATEGORIES = {
+  "Miscible CO2":       "Gas Injection",
+  "Immiscible CO2":     "Gas Injection",
+  "Miscible HC Gas":    "Gas Injection",
+  "WAG":                "Gas Injection",
+  "N2 Injection":       "Gas Injection",
+  "Polymer Flood":      "Chemical EOR",
+  "ASP Flood":          "Chemical EOR",
+  "Surfactant-Polymer": "Chemical EOR",
+  "Steam Flood":        "Thermal EOR",
+  "In-Situ Combustion": "Thermal EOR",
+  "Hot Water Flood":    "Thermal EOR",
+  "Low-Sal. WF":        "IOR/EOR",
+};
+
+const DEFAULT_TUNING = {
+  techWeight: 65, logWeight: 35,
+  passThreshold: 60,
+  techSoftCap: 30, logSoftCap: 30,
+  fracturedCarbCap: 30,
+  rockModifiers: Object.fromEntries(EOR_METHODS.map(m => [m, 0.5])),
+  wt_tds: 50000, wt_divalents: 1000, wt_oiw: 100, wt_solids: 20, wt_perm: 300,
+  potentialWeight: 33, costWeight: 33, speedWeight: 34,
+};
+
+const LOGISTICS_QUESTIONS = {
+  "General": [
+    { key:"onshore",    label:"Onshore field (vs offshore)?",                        softCap:false },
+    { key:"infra",      label:"Existing injection infrastructure (wells, pumps)?",   softCap:false },
+    { key:"wells",      label:"Sufficient well count & pattern spacing achievable?", softCap:false },
+    { key:"access",     label:"Road/logistics access for chemicals & personnel?",    softCap:false },
+    { key:"regulatory", label:"Regulatory & HSE framework for EOR injection?",      softCap:false },
+    { key:"wastewater", label:"Produced water / effluent disposal plan?",           softCap:false },
+    { key:"economics",  label:"Project economics evaluated at current oil price?",  softCap:false },
+  ],
+  "Miscible CO2":    [
+    { key:"co2_source",  label:"⚠ CO₂ source within economic distance?", softCap:true  },
+    { key:"co2_pipe",    label:"CO₂ pipeline/transport feasible?",        softCap:false },
+    { key:"co2_compr",   label:"CO₂ capture/compression facility?",       softCap:false },
+    { key:"co2_pres",    label:"Reservoir pressure ≥ MMP feasible?",      softCap:false },
+    { key:"co2_permit",  label:"CO₂ injection permit obtainable?",        softCap:false },
+  ],
+  "Immiscible CO2":  [
+    { key:"ico2_source", label:"⚠ CO₂ source available nearby?",     softCap:true  },
+    { key:"ico2_pipe",   label:"CO₂ transport/pipeline feasible?",   softCap:false },
+    { key:"ico2_corr",   label:"Corrosion-resistant completions?",    softCap:false },
+    { key:"ico2_recyfl", label:"CO₂ recycling (reinjection) viable?",softCap:false },
+    { key:"ico2_permit", label:"CO₂ injection permit obtainable?",   softCap:false },
+  ],
+  "Miscible HC Gas": [
+    { key:"hcg_source",  label:"⚠ Lean enriched gas (C2–C6) available?", softCap:true  },
+    { key:"hcg_compr",   label:"Gas compression infrastructure?",          softCap:false },
+    { key:"hcg_econ",    label:"Gas sales vs. injection economics done?",  softCap:false },
+    { key:"hcg_vol",     label:"Sufficient gas volumes for project life?", softCap:false },
+    { key:"hcg_permit",  label:"HC gas injection permit obtainable?",      softCap:false },
+  ],
+  "WAG": [
+    { key:"wag_gas",     label:"⚠ Gas source available (HC or CO₂)?",   softCap:true  },
+    { key:"wag_water",   label:"Fresh/treated water source available?",  softCap:false },
+    { key:"wag_equip",   label:"Alternating injection equipment?",       softCap:false },
+    { key:"wag_compr",   label:"Gas compression capacity sufficient?",   softCap:false },
+    { key:"wag_gas_bt",  label:"Produced gas handling for breakthrough?",softCap:false },
+  ],
+  "N2 Injection": [
+    { key:"n2_plant",    label:"⚠ N₂ generation plant feasible?",       softCap:true  },
+    { key:"n2_equip",    label:"High-pressure N₂ injection equipment?", softCap:false },
+    { key:"n2_cap",      label:"Cap rock integrity confirmed?",          softCap:false },
+    { key:"n2_vent",     label:"Produced N₂ handling/venting plan?",    softCap:false },
+    { key:"n2_permit",   label:"N₂ injection regulatory approval?",     softCap:false },
+  ],
+  "Polymer Flood": [
+    { key:"poly_water",  label:"⚠ Water source available (any salinity)?",         softCap:true  },
+    { key:"poly_supply", label:"Polymer supply chain (HPAM/ATBS)?",               softCap:false },
+    { key:"poly_mix",    label:"Polymer mixing & injection facility?",             softCap:false },
+    { key:"poly_pwt",    label:"Produced water treatment & disposal plan?",        softCap:false },
+    { key:"poly_valid",  label:"Polymer chemistry validated for T & water chemistry?", softCap:false },
+  ],
+  "ASP Flood": [
+    { key:"asp_water",   label:"⚠ Water source available?",              softCap:true  },
+    { key:"asp_chem",    label:"Alkali, surfactant & polymer supply?",   softCap:false },
+    { key:"asp_mix",     label:"Chemical mixing plant & injection facility?", softCap:false },
+    { key:"asp_sep",     label:"Produced fluid separation (emulsions)?", softCap:false },
+    { key:"asp_scale",   label:"Scale & produced water management?",     softCap:false },
+  ],
+  "Surfactant-Polymer": [
+    { key:"sp_water",    label:"⚠ Fresh/low-TDS water source available?",        softCap:true  },
+    { key:"sp_supply",   label:"Surfactant supply & formulation validated?",     softCap:false },
+    { key:"sp_avail",    label:"Surfactant molecules commercially available?",   softCap:false },
+    { key:"sp_emul",     label:"Produced emulsion handling capacity?",           softCap:false },
+    { key:"sp_ads",      label:"Surfactant adsorption acceptable?",              softCap:false },
+  ],
+  "Steam Flood": [
+    { key:"st_water",    label:"⚠ Fresh water (large volumes) available?",      softCap:true  },
+    { key:"st_gen",      label:"Steam generator (OTSG) & fuel source?",         softCap:false },
+    { key:"st_heat",     label:"Acceptable heat losses (depth <1400m, pay >6m)?", softCap:false },
+    { key:"st_pwt",      label:"Produced water treatment & recycling?",         softCap:false },
+    { key:"st_surf",     label:"Surface facilities (separators, insulation)?",  softCap:false },
+  ],
+  "In-Situ Combustion": [
+    { key:"isc_air",     label:"⚠ Air compression infrastructure feasible?",    softCap:true  },
+    { key:"isc_asph",    label:"Sufficient asphaltene for coke deposition?",    softCap:false },
+    { key:"isc_gas",     label:"Produced gas (CO₂,N₂,CO,SO₂) handling?",       softCap:false },
+    { key:"isc_comp",    label:"High-temperature well completions?",            softCap:false },
+    { key:"isc_permit",  label:"Environmental permit for combustion gases?",    softCap:false },
+  ],
+  "Hot Water Flood": [
+    { key:"hw_source",   label:"⚠ Hot water source or heating system?",          softCap:true  },
+    { key:"hw_insul",    label:"Insulated surface lines & wellbore equipment?",  softCap:false },
+    { key:"hw_pwt",      label:"Produced water treatment capacity?",             softCap:false },
+    { key:"hw_econ",     label:"Heating energy cost economically viable?",       softCap:false },
+    { key:"hw_permit",   label:"Thermal injection permit obtainable?",           softCap:false },
+  ],
+  "Low-Sal. WF": [
+    { key:"ls_water",    label:"⚠ Low-salinity source (or desalination) feasible?", softCap:true  },
+    { key:"ls_wet",      label:"Wettability alteration confirmed by lab?",           softCap:false },
+    { key:"ls_compat",   label:"Brine compatibility verified?",                      softCap:false },
+    { key:"ls_fines",    label:"Fines migration risk assessed & manageable?",        softCap:false },
+    { key:"ls_monit",    label:"Salinity monitoring plan in place?",                 softCap:false },
+  ],
+};
+
+function scoreParameter(value, { min, avg, max }) {
+  if (value === null || value === undefined || isNaN(value)) return null;
+  if (max === 999) {
+    if (value < min) return 0;
+    if (value < avg) return ((value - min) / (avg - min)) * 100;
+    return 100;
+  }
+  if (value < min || value > max) return 0;
+  if (value <= avg) return ((value - min) / (avg - min)) * 100;
+  return ((max - value) / (max - avg)) * 100;
+}
+
+function computeTechnicalScore(fieldData, methodKey, criteria) {
+  const params = criteria[methodKey];
+  let weightedSum = 0, totalWeight = 0;
+  for (const [pk, spec] of Object.entries(params)) {
+    if (spec.weight === 0) continue;
+    const val = parseFloat(fieldData[pk]);
+    if (isNaN(val)) continue;
+    const raw = scoreParameter(val, spec);
+    if (raw === null) continue;
+    weightedSum += raw * spec.weight;
+    totalWeight += spec.weight * 100;
+  }
+  if (totalWeight === 0) return 0;
+  return (weightedSum / totalWeight) * 100;
+}
+
+function computeLogisticsScore(fieldLogistics, methodKey, generalAnswers, tuning) {
+  const methodQs  = LOGISTICS_QUESTIONS[methodKey] || [];
+  const generalQs = LOGISTICS_QUESTIONS["General"] || [];
+  const allQs     = [...generalQs, ...methodQs];
+  const vm = { Yes:100, Partial:50, No:0 };
+  let sum = 0, count = 0, softCap = false;
+  for (const q of allQs) {
+    const src = q.softCap ? fieldLogistics[methodKey] : (generalAnswers || fieldLogistics[methodKey]);
+    const ans = (src && src[q.key]) ?? "No";
+    sum += vm[ans] ?? 0;
+    count++;
+    if (q.softCap && ans === "No") softCap = true;
+  }
+  const raw = count > 0 ? sum / count : 0;
+  return softCap ? Math.min(raw, tuning.logSoftCap) : raw;
+}
+
+function applyRockModifier(score, fieldData, method, tuning) {
+  if (fieldData.rockType === "Fract. Carb." && method !== "Low-Sal. WF")
+    return Math.min(score, tuning.fracturedCarbCap);
+  if (fieldData.rockType === "Carbonate")
+    return score * (tuning.rockModifiers[method] ?? 1);
+  return score;
+}
+
+function applyMMPCap(score, fieldData, method, tuning) {
+  const GAS = ["Miscible CO2","Miscible HC Gas","N2 Injection"];
+  if (!GAS.includes(method)) return score;
+  const pres = parseFloat(fieldData.pres ?? 0);
+  const mmpKey = method === "Miscible CO2" ? "mmp_co2" : method === "Miscible HC Gas" ? "mmp_hcgas" : "mmp_n2";
+  const mmp = parseFloat(fieldData[mmpKey] ?? 999);
+  return pres < mmp ? Math.min(score, tuning.techSoftCap) : score;
+}
+
+function computeFlags(fieldData, method, tech, log, tuning) {
+  const flags = [];
+  const GAS = ["Miscible CO2","Miscible HC Gas","N2 Injection"];
+  if (GAS.includes(method)) {
+    const pres = parseFloat(fieldData.pres ?? 0);
+    const mmpKey = method==="Miscible CO2"?"mmp_co2":method==="Miscible HC Gas"?"mmp_hcgas":"mmp_n2";
+    if (pres < parseFloat(fieldData[mmpKey] ?? 999)) flags.push("🚫MMP");
+  }
+  if (fieldData.rockType === "Fract. Carb." && method !== "Low-Sal. WF") flags.push("🚫Frac");
+  if (log <= tuning.logSoftCap + 1) flags.push("⚠Log");
+  const tds    = parseFloat(fieldData.tds_formation ?? 0);
+  const divs   = parseFloat(fieldData.divalents ?? 0);
+  const oiw    = parseFloat(fieldData.oiw ?? 0);
+  const solids = parseFloat(fieldData.suspended ?? 0);
+  const perm   = parseFloat(fieldData.perm ?? 9999);
+  if ((tds>tuning.wt_tds&&perm<tuning.wt_perm)||divs>tuning.wt_divalents||oiw>tuning.wt_oiw||solids>tuning.wt_solids)
+    flags.push("💧WT");
+  return flags;
+}
+
+const METHOD_PROFILES = {
+  "Miscible CO2":        { pot:80, cost:55, speed:60 },
+  "Immiscible CO2":      { pot:75, cost:58, speed:62 },
+  "Miscible HC Gas":     { pot:78, cost:60, speed:60 },
+  "WAG":                 { pot:82, cost:58, speed:62 },
+  "N2 Injection":        { pot:76, cost:56, speed:60 },
+  "Polymer Flood":       { pot:70, cost:62, speed:65 },
+  "ASP Flood":           { pot:78, cost:55, speed:66 },
+  "Surfactant-Polymer":  { pot:78, cost:55, speed:65 },
+  "Steam Flood":         { pot:72, cost:45, speed:58 },
+  "In-Situ Combustion":  { pot:74, cost:42, speed:55 },
+  "Hot Water Flood":     { pot:70, cost:48, speed:58 },
+  "Low-Sal. WF":         { pot:75, cost:65, speed:68 },
+};
+
+function computeStrategicFit(fieldData, method, tuning) {
+  const p = METHOD_PROFILES[method];
+  const ooip = parseFloat(fieldData.ooip ?? 0);
+  const rf   = parseFloat(fieldData.rf ?? 50) / 100;
+  const wells = parseFloat(fieldData.wells ?? 1);
+  const inj  = parseFloat(fieldData.injectors ?? 0);
+  const sp   = parseFloat(fieldData.spacing ?? 300);
+  const pot  = Math.min(100, Math.max(0, p.pot*(0.5+0.5*(1-rf))+Math.min(20,ooip/200)));
+  const cost = Math.min(100, Math.max(0, p.cost+Math.min(15,(wells/50)*10)));
+  const spd  = Math.min(100, Math.max(0, p.speed+(inj>0?Math.min(15,(inj/Math.max(wells,1))*20):0)+(sp>400?-5:0)));
+  const fit  = (pot*tuning.potentialWeight+cost*tuning.costWeight+spd*tuning.speedWeight)/
+               (tuning.potentialWeight+tuning.costWeight+tuning.speedWeight);
+  return { potential:Math.round(pot*10)/10, cost:Math.round(cost*10)/10, speed:Math.round(spd*10)/10, fit:Math.round(fit*10)/10 };
+}
+
+function screenField(fieldData, fieldLogistics={}, generalLogistics={}, criteria=SCREENING_CRITERIA, tuning=DEFAULT_TUNING) {
+  const results = {};
+  for (const method of EOR_METHODS) {
+    let tech = computeTechnicalScore(fieldData, method, criteria);
+    tech = applyRockModifier(tech, fieldData, method, tuning);
+    tech = applyMMPCap(tech, fieldData, method, tuning);
+    tech = Math.max(0, Math.min(100, tech));
+    const log = computeLogisticsScore(fieldLogistics, method, generalLogistics, tuning);
+    const combined = (tech*tuning.techWeight + log*tuning.logWeight)/100;
+    const flags = computeFlags(fieldData, method, tech, log, tuning);
+    const strategic = computeStrategicFit(fieldData, method, tuning);
+    results[method] = {
+      tech:Math.round(tech*10)/10, log:Math.round(log*10)/10, combined:Math.round(combined*10)/10,
+      strategic, flags, isCandidate: combined >= tuning.passThreshold,
+    };
+  }
+  return results;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEMO FIELD DATA (from Excel — Kalamkas as default)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const DEMO_FIELDS = {
+  "Kalamkas": {
+    api:13, viscosity:20, porosity:22, so:55, depth:800, temp:40, perm:550, netpay:30,
+    dp:0.6, tan:0.5, tds:30000, divalents:1500,
+    tds_formation:130000, oiw:500, suspended:20,
+    pres:80, mmp_co2:130, mmp_hcgas:130, mmp_n2:130,
+    rockType:"Sandstone", ooip:600, rf:40, wells:600, injectors:250, spacing:450,
+  },
+  "Shushufindi": {
+    api:30, viscosity:45, porosity:17, so:55, depth:1700, temp:85, perm:1000, netpay:3,
+    dp:0.7, tan:0.1, tds:5000, divalents:3000,
+    tds_formation:54000, oiw:100, suspended:30,
+    pres:30, mmp_co2:180, mmp_hcgas:180, mmp_n2:210,
+    rockType:"Sandstone", ooip:2000, rf:30, wells:30, injectors:15, spacing:150,
+  },
+  "Milne Point": {
+    api:28, viscosity:850, porosity:25, so:65, depth:550, temp:17, perm:1200, netpay:10,
+    dp:0.6, tan:0.5, tds:6000, divalents:300,
+    tds_formation:6000, oiw:200, suspended:20,
+    pres:80, mmp_co2:130, mmp_hcgas:130, mmp_n2:130,
+    rockType:"Sandstone", ooip:1500, rf:5, wells:95, injectors:35, spacing:100,
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════════
+
+let state = {
+  activeTab: "input",
+  fieldData: { ...DEMO_FIELDS["Kalamkas"] },
+  logistics: {},       // { methodKey: { questionKey: "Yes"|"Partial"|"No" } }
+  generalLogistics: {
+    onshore:"Yes", infra:"Yes", wells:"Yes", access:"Yes",
+    regulatory:"Yes", wastewater:"Yes", economics:"Yes",
+  },
+  criteria: JSON.parse(JSON.stringify(SCREENING_CRITERIA)),
+  tuning:   JSON.parse(JSON.stringify(DEFAULT_TUNING)),
+  results:  null,
+  openAccordions: {},
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function scoreColor(v) {
+  if (v >= 70) return "var(--green)";
+  if (v >= 45) return "var(--orange)";
+  return "var(--red)";
+}
+function scoreClass(v) {
+  if (v >= 70) return "score-high";
+  if (v >= 45) return "score-mid";
+  return "score-low";
+}
+function catClass(cat) {
+  if (cat==="Gas Injection") return "cat-gas";
+  if (cat==="Chemical EOR")  return "cat-chem";
+  if (cat==="Thermal EOR")   return "cat-therm";
+  return "cat-ior";
+}
+
+function runScreening() {
+  state.results = screenField(state.fieldData, state.logistics, state.generalLogistics, state.criteria, state.tuning);
+}
+
+function setTab(t) { state.activeTab = t; render(); }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════════════════
+
+function render() {
+  document.getElementById("app").innerHTML = buildApp();
+  attachEvents();
+}
+
+function buildApp() {
+  return `
+<div class="app">
+  ${buildHeader()}
+  ${buildTabs()}
+  <main class="main">
+    ${
+      state.activeTab === "input"    ? buildInput()    :
+      state.activeTab === "logistics"? buildLogistics():
+      state.activeTab === "results"  ? buildResults()  :
+      state.activeTab === "weights"  ? buildWeights()  :
+      state.activeTab === "tuning"   ? buildTuning()   :
+      state.activeTab === "guide"    ? buildGuide()    : ""
+    }
+  </main>
+  ${buildFooter()}
+</div>`;
+}
+
+function buildHeader() {
+  return `
+<header>
+  <div class="logo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M12 2a10 10 0 0 1 0 20M12 2C6.5 2 2 6.5 2 12M12 22c5.5 0 10-4.5 10-10"/>
+      <path d="M2 12h20"/>
+    </svg>
+    EOR Screening Tool
+    <span class="logo-badge">v5 OSS</span>
+  </div>
+  <div class="header-links">
+    <a href="https://github.com/your-org/eor-screening-tool" target="_blank">⭐ GitHub</a>
+    <a href="#" onclick="exportJSON()">↓ Export JSON</a>
+    <a href="#" onclick="exportCSV()">↓ Export CSV</a>
+  </div>
+</header>`;
+}
+
+function buildTabs() {
+  const tabs = [
+    { id:"input",    label:"① Reservoir Input" },
+    { id:"logistics",label:"② Logistics" },
+    { id:"results",  label:"③ Results Dashboard" },
+    { id:"weights",  label:"④ Screening Criteria & Weights" },
+    { id:"tuning",   label:"⑤ Tuning Panel" },
+    { id:"guide",    label:"📖 Guide" },
+  ];
+  return `<div class="tabs">${tabs.map(t=>`
+    <button class="tab ${state.activeTab===t.id?"active":""}" onclick="setTab('${t.id}')">${t.label}</button>
+  `).join("")}</div>`;
+}
+
+// ── TAB 1: RESERVOIR INPUT ──────────────────────────────────────────────────
+function buildInput() {
+  const fd = state.fieldData;
+  const demos = Object.keys(DEMO_FIELDS);
+  return `
+<div class="section-title">Reservoir Input</div>
+<div class="section-sub">Enter reservoir properties for your field. Blue-outlined inputs are scored in the technical assessment.</div>
+
+<div class="info-box">
+  <strong>Demo fields:</strong> Load a pre-filled example to explore the tool.
+  ${demos.map(d=>`<button class="btn btn-secondary" style="margin-left:8px;margin-top:4px" onclick="loadDemo('${d}')">${d}</button>`).join("")}
+</div>
+
+<div style="display:grid;gap:20px">
+  ${buildInputSection("🆔 Field Identification", [
+    { key:"fieldName",   label:"Field Name / ID",      type:"text" },
+    { key:"country",     label:"Country / Region",     type:"text" },
+    { key:"maturity",    label:"Field Maturity",       type:"select", opts:["Primary","Waterflood","Tertiary"] },
+    { key:"rockType",    label:"Rock Type",            type:"select", opts:["Sandstone","Carbonate","Fract. Carb.","Other"] },
+    { key:"ooip",        label:"OOIP",                 type:"num", unit:"MMbbl" },
+    { key:"rf",          label:"Current Recovery Factor", type:"num", unit:"%" },
+  ])}
+
+  ${buildInputSection("💧 Fluid Properties (scored)", [
+    { key:"api",       label:"API Gravity",                  type:"num", unit:"°API",     scored:true,  note:PARAM_NOTES.api },
+    { key:"viscosity", label:"Oil Viscosity (reservoir cond.)", type:"num", unit:"cP",   scored:true,  note:PARAM_NOTES.viscosity },
+    { key:"tan",       label:"TAN (Total Acid Number)",      type:"num", unit:"mg KOH/g", scored:true,  note:PARAM_NOTES.tan },
+  ], true)}
+
+  ${buildInputSection("🌊 Water & Salinity (scored)", [
+    { key:"tds_formation", label:"Formation Water TDS",           type:"num", unit:"mg/L" },
+    { key:"tds",           label:"Injection Water TDS",           type:"num", unit:"mg/L",  scored:true, note:PARAM_NOTES.tds },
+    { key:"divalents",     label:"Divalent Cations (Ca²⁺+Mg²⁺)", type:"num", unit:"mg/L",  scored:true, note:PARAM_NOTES.divalents },
+    { key:"oiw",           label:"Oil-in-Water (OiW)",            type:"num", unit:"mg/L" },
+    { key:"suspended",     label:"Suspended Solids",              type:"num", unit:"mg/L" },
+  ], true)}
+
+  ${buildInputSection("🏔️ Reservoir Properties (scored)", [
+    { key:"porosity",  label:"Porosity",              type:"num", unit:"%",   scored:true, note:PARAM_NOTES.porosity },
+    { key:"perm",      label:"Horizontal Permeability",type:"num", unit:"mD", scored:true, note:PARAM_NOTES.perm },
+    { key:"netpay",    label:"Net Pay Thickness",     type:"num", unit:"m",   scored:true, note:PARAM_NOTES.netpay },
+    { key:"depth",     label:"Depth (mid-perf TVDss)",type:"num", unit:"m",   scored:true, note:PARAM_NOTES.depth },
+    { key:"temp",      label:"Reservoir Temperature", type:"num", unit:"°C",  scored:true, note:PARAM_NOTES.temp },
+    { key:"so",        label:"Oil Saturation (current)", type:"num", unit:"%" , scored:true, note:PARAM_NOTES.so },
+    { key:"dp",        label:"Dykstra-Parsons Coeff.", type:"num", unit:"0–1", scored:true, note:PARAM_NOTES.dp },
+  ], true)}
+
+  ${buildInputSection("🔢 Pressure & MMP", [
+    { key:"pres",      label:"Current Reservoir Pressure", type:"num", unit:"bara" },
+    { key:"mmp_co2",   label:"MMP CO₂",                   type:"num", unit:"bara" },
+    { key:"mmp_hcgas", label:"MMP HC Gas",                type:"num", unit:"bara" },
+    { key:"mmp_n2",    label:"MMP N₂",                    type:"num", unit:"bara" },
+  ])}
+
+  ${buildInputSection("⛽ Wells & Spacing", [
+    { key:"wells",     label:"Number of Wells (Prod+Inj)", type:"num" },
+    { key:"injectors", label:"Existing Injectors Operational", type:"num" },
+    { key:"spacing",   label:"Average Well Spacing",       type:"num", unit:"m" },
+  ])}
+</div>
+
+<div style="margin-top:24px;display:flex;gap:12px;align-items:center">
+  <button class="btn btn-primary" onclick="runAndShowResults()">
+    ▶ Run EOR Screening
+  </button>
+  <button class="btn btn-secondary" onclick="resetField()">↺ Reset Field</button>
+  <span style="color:var(--text2);font-size:12px">Results update automatically when you run screening.</span>
+</div>`;
+}
+
+function buildInputSection(title, fields, scored=false) {
+  const fd = state.fieldData;
+  return `
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">${title}</span>
+    ${scored ? `<span class="chip">scored inputs</span>` : ""}
+  </div>
+  <div class="card-body">
+    <div class="field-grid">
+      ${fields.map(f => {
+        const val = fd[f.key] ?? "";
+        const border = f.scored ? "border-color:var(--accent2)" : "";
+        if (f.type === "select") {
+          return `
+<div class="field-group">
+  <label class="field-label">${f.label}${f.note?`<span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-box">${f.note}</span></span>`:""}</label>
+  <select class="field-input" style="${border}" data-key="${f.key}" onchange="setField('${f.key}',this.value)">
+    ${(f.opts||[]).map(o=>`<option ${val===o?"selected":""}>${o}</option>`).join("")}
+  </select>
+</div>`;
+        }
+        if (f.type === "text") {
+          return `
+<div class="field-group">
+  <label class="field-label">${f.label}</label>
+  <input class="field-input" type="text" value="${val}" data-key="${f.key}" oninput="setField('${f.key}',this.value)">
+</div>`;
+        }
+        return `
+<div class="field-group">
+  <label class="field-label">${f.label}${f.unit?`<span class="field-unit">${f.unit}</span>`:""}${f.note?`<span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-box">${f.note}</span></span>`:""}</label>
+  <input class="field-input" type="number" step="any" value="${val}" data-key="${f.key}" oninput="setField('${f.key}',parseFloat(this.value))">
+</div>`;
+      }).join("")}
+    </div>
+  </div>
+</div>`;
+}
+
+// ── TAB 2: LOGISTICS ────────────────────────────────────────────────────────
+function buildLogistics() {
+  return `
+<div class="section-title">Logistics & Field Readiness Checklist</div>
+<div class="section-sub">Answer Yes / Partial / No for each question. ⚠ questions are soft-cap triggers — answering No caps the logistics score at ${state.tuning.logSoftCap}%.</div>
+
+<div style="display:grid;gap:16px">
+  ${buildLogisticsSection("General Logistics", "General", state.generalLogistics, true)}
+  ${EOR_METHODS.map(m => buildLogisticsSection(m, m, state.logistics[m]||{}, false)).join("")}
+</div>`;
+}
+
+function buildLogisticsSection(title, method, answers, isGeneral) {
+  const qs = LOGISTICS_QUESTIONS[method] || [];
+  const open = state.openAccordions[method] ?? (method === "General");
+  return `
+<div class="card">
+  <div class="accordion-header" onclick="toggleAccordion('${method}')">
+    <span class="accordion-header-text">${method === "General" ? "📋 "+title : title}${method!=="General"?` <span class="cat-pill ${catClass(METHOD_CATEGORIES[method])}">${METHOD_CATEGORIES[method]}</span>`:""}</span>
+    <span class="accordion-chevron ${open?"open":""}">▶</span>
+  </div>
+  ${open ? `
+  <div class="accordion-body">
+    ${qs.map(q => `
+    <div class="logistics-row">
+      <span class="logistics-q ${q.softCap?"soft-cap":""}">${q.label}</span>
+      <div class="logistics-toggle">
+        ${["Yes","Partial","No"].map(opt => {
+          const cur = answers[q.key] ?? "No";
+          return `<button class="toggle-btn ${cur===opt?"active-"+opt.toLowerCase().replace("partial","part"):""}"
+            onclick="setLogistics('${method}','${q.key}','${opt}','${isGeneral}')">${opt}</button>`;
+        }).join("")}
+      </div>
+    </div>`).join("")}
+  </div>` : ""}
+</div>`;
+}
+
+// ── TAB 3: RESULTS ──────────────────────────────────────────────────────────
+function buildResults() {
+  if (!state.results) {
+    return `
+<div class="empty-state">
+  <h3>No results yet</h3>
+  <p>Go to <strong>Reservoir Input</strong> and click <strong>▶ Run EOR Screening</strong></p>
+  <br>
+  <button class="btn btn-primary" onclick="runAndShowResults()">▶ Run Screening Now</button>
+</div>`;
+  }
+
+  const r = state.results;
+  const sorted = EOR_METHODS.map(m=>({method:m,...r[m]})).sort((a,b)=>b.combined-a.combined);
+  const top3 = sorted.slice(0,3);
+
+  return `
+<div class="section-title">Results Dashboard</div>
+<div class="section-sub">Technical feasibility × Logistics readiness. Combined score = ${state.tuning.techWeight}% Technical + ${state.tuning.logWeight}% Logistics. Pass threshold: ≥${state.tuning.passThreshold}%</div>
+
+<div class="info-box">
+  <strong>How to read this:</strong> Use <em>combined score</em> for technical feasibility ("CAN we do it?"). Switch to the <strong>④ Screening Criteria</strong> tab to adjust weights. Switch to <strong>⑤ Tuning</strong> to change caps and thresholds.
+</div>
+
+<div class="podium">
+  ${top3.map((r,i)=>`
+  <div class="podium-card rank-${i+1}">
+    <div class="podium-rank">${["🥇","🥈","🥉"][i]}</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:4px;font-family:var(--font-mono)">#${i+1} RANKED</div>
+    <div class="podium-method">${r.method}</div>
+    <div class="podium-score">${r.combined.toFixed(1)}%</div>
+    <div class="cat-pill ${catClass(METHOD_CATEGORIES[r.method])}">${METHOD_CATEGORIES[r.method]}</div>
+    ${r.flags.length?`<div class="flags" style="margin-top:8px">${r.flags.map(f=>`<span class="flag ${f.includes("⚠")?"flag-warn":""}">${f}</span>`).join("")}</div>`:""}
+  </div>`).join("")}
+</div>
+
+<div class="card" style="overflow-x:auto">
+  <table class="results-table">
+    <thead>
+      <tr>
+        <th>Method</th>
+        <th>Category</th>
+        <th style="min-width:130px">Technical</th>
+        <th style="min-width:130px">Logistics</th>
+        <th style="min-width:130px">Combined</th>
+        <th>Status</th>
+        <th>Flags</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${sorted.map(row => {
+        const candidate = row.combined >= state.tuning.passThreshold;
+        return `
+      <tr>
+        <td style="font-weight:600;white-space:nowrap">${row.method}</td>
+        <td><span class="cat-pill ${catClass(METHOD_CATEGORIES[row.method])}">${METHOD_CATEGORIES[row.method]}</span></td>
+        <td>${buildScoreBar(row.tech)}</td>
+        <td>${buildScoreBar(row.log)}</td>
+        <td>${buildScoreBar(row.combined, true)}</td>
+        <td><span style="color:${candidate?"var(--green)":"var(--text3)"};font-size:12px;font-family:var(--font-mono)">${candidate?"● CANDIDATE":"○ Below threshold"}</span></td>
+        <td><div class="flags">${row.flags.map(f=>`<span class="flag ${f.includes("⚠")?"flag-warn":""}">${f}</span>`).join("") || '<span style="color:var(--text3);font-size:11px">✓</span>'}</div></td>
+      </tr>`;
+      }).join("")}
+    </tbody>
+  </table>
+</div>
+
+<div style="margin-top:24px">
+  <div class="section-title" style="font-size:16px;margin-bottom:12px">🎯 Strategic Fit</div>
+  <div class="section-sub">Independent value-based ranking. Potential × Cost × Speed. Weights adjustable in Tuning Panel.</div>
+  <div class="card" style="overflow-x:auto">
+    <table class="results-table">
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>🔬 Potential</th>
+          <th>💰 Cost-Effectiveness</th>
+          <th>⚡ Speed-to-Oil</th>
+          <th>🎯 Strategic Fit</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${EOR_METHODS.map(m=>{
+          const s = r[m].strategic;
+          return `<tr>
+            <td style="font-weight:600">${m}</td>
+            <td>${buildScoreBar(s.potential)}</td>
+            <td>${buildScoreBar(s.cost)}</td>
+            <td>${buildScoreBar(s.speed)}</td>
+            <td>${buildScoreBar(s.fit,true)}</td>
+          </tr>`;
+        }).join("")}
+      </tbody>
+    </table>
+  </div>
+</div>`;
+}
+
+function buildScoreBar(v, bold=false) {
+  const c = scoreColor(v);
+  return `
+<div class="score-bar-wrap">
+  <div class="score-bar-track">
+    <div class="score-bar-fill" style="width:${v}%;background:${c}"></div>
+  </div>
+  <span class="score-value" style="color:${c};${bold?"font-weight:600":""}">${v.toFixed(1)}%</span>
+</div>`;
+}
+
+// ── TAB 4: WEIGHTS / CRITERIA ───────────────────────────────────────────────
+function buildWeights() {
+  return `
+<div class="section-title">Screening Criteria & Parameter Weights</div>
+<div class="section-sub">
+  Edit ranges [Min / Ideal / Max] and weights (0–5) for each EOR method and parameter.
+  Weight 0 = parameter not used for that method. Weight 5 = critical.
+  Changes take effect immediately when you re-run screening.
+</div>
+
+<div class="info-box">
+  <strong>Scoring logic:</strong> Each parameter is scored 0–100 on a triangular function:
+  below Min → 0, at Min → 0, at Ideal/Avg → 100, at Max → 0.
+  If Max = 999, no upper limit is applied (score stays 100 once value ≥ Ideal).
+  The weighted average of all non-zero parameters gives the Technical Score (0–100).
+</div>
+
+<div style="display:grid;gap:20px">
+  ${EOR_METHODS.map(m => buildCriteriaTable(m)).join("")}
+</div>
+
+<div style="margin-top:20px">
+  <button class="btn btn-secondary" onclick="resetCriteria()">↺ Reset to Defaults</button>
+</div>`;
+}
+
+function buildCriteriaTable(method) {
+  const crit = state.criteria[method];
+  const open = state.openAccordions["crit_"+method] ?? false;
+  return `
+<div class="card">
+  <div class="accordion-header" onclick="toggleAccordion('crit_${method}')">
+    <span class="accordion-header-text">${method} <span class="cat-pill ${catClass(METHOD_CATEGORIES[method])}">${METHOD_CATEGORIES[method]}</span></span>
+    <span class="accordion-chevron ${open?"open":""}">▶</span>
+  </div>
+  ${open ? `
+  <div class="accordion-body" style="padding:0;overflow-x:auto">
+    <table class="results-table" style="min-width:600px">
+      <thead>
+        <tr>
+          <th>Parameter</th>
+          <th>Unit</th>
+          <th style="min-width:90px">Min</th>
+          <th style="min-width:90px">Ideal (Avg)</th>
+          <th style="min-width:90px">Max</th>
+          <th style="min-width:90px">Weight (0–5)</th>
+          <th>Scoring Preview</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${PARAMETERS.map(p => {
+          const spec = crit[p.key];
+          if (!spec) return "";
+          const fieldVal = parseFloat(state.fieldData[p.key]);
+          const rawScore = isNaN(fieldVal) ? null : scoreParameter(fieldVal, spec);
+          return `
+        <tr>
+          <td style="font-weight:500">${p.label} <span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-box">${PARAM_NOTES[p.key]||""}</span></span></td>
+          <td><span class="field-unit">${p.unit}</span></td>
+          <td><input class="weight-input" type="number" step="any" value="${spec.min}"
+            onchange="setCriteria('${method}','${p.key}','min',parseFloat(this.value))"></td>
+          <td><input class="weight-input" type="number" step="any" value="${spec.avg}"
+            onchange="setCriteria('${method}','${p.key}','avg',parseFloat(this.value))"></td>
+          <td><input class="weight-input" type="number" step="any" value="${spec.max}"
+            onchange="setCriteria('${method}','${p.key}','max',parseFloat(this.value))"></td>
+          <td>
+            <select class="field-input" style="width:70px;padding:3px 6px;font-size:12px"
+              onchange="setCriteria('${method}','${p.key}','weight',parseInt(this.value))">
+              ${[0,1,2,3,4,5].map(w=>`<option ${spec.weight===w?"selected":""}>${w}</option>`).join("")}
+            </select>
+          </td>
+          <td>
+            ${rawScore !== null ? buildScoreBar(rawScore) : '<span style="color:var(--text3);font-size:11px">No data</span>'}
+            ${rawScore !== null && spec.weight > 0 ? `<div style="font-size:10px;color:var(--text3);margin-top:2px">Field value: ${fieldVal} → Raw score: ${rawScore.toFixed(1)} × w${spec.weight}</div>` : ""}
+          </td>
+        </tr>`;
+        }).join("")}
+      </tbody>
+    </table>
+  </div>` : ""}
+</div>`;
+}
+
+// ── TAB 5: TUNING ────────────────────────────────────────────────────────────
+function buildTuning() {
+  const t = state.tuning;
+  return `
+<div class="section-title">Tuning Panel</div>
+<div class="section-sub">All global parameters controlling scoring behaviour. Every change takes effect on the next screening run.</div>
+
+<div style="display:grid;gap:20px">
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">1. Global Score Balance</span></div>
+    <div class="card-body">
+      <div class="tuning-grid">
+        ${buildTuningNum("techWeight","Technical Score Weight (%)","Weight of Technical in Combined score. Tech+Log must sum to 100.",t.techWeight)}
+        ${buildTuningNum("logWeight","Logistics Score Weight (%)","Weight of Logistics in Combined. Auto-validates sum.",t.logWeight)}
+        ${buildTuningNum("passThreshold","Candidate Pass Threshold (%)","Combined ≥ this value → green / candidate",t.passThreshold)}
+        ${buildTuningNum("techSoftCap","Technical Soft-Cap (%)","If MMP fails: Technical score is capped here. Set 100 to disable.",t.techSoftCap)}
+        ${buildTuningNum("logSoftCap","Logistics Soft-Cap (%)","If critical logistics = No: Logistics capped here.",t.logSoftCap)}
+        ${buildTuningNum("fracturedCarbCap","Fractured Carbonate Hard Cap (%)","Fractures bypass matrix → cap applied (LSWF exempt).",t.fracturedCarbCap)}
+      </div>
+      <div style="margin-top:12px;padding:10px;background:var(--bg3);border-radius:var(--radius);font-family:var(--font-mono);font-size:12px">
+        Combined = (Tech × ${t.techWeight}% + Log × ${t.logWeight}%) ÷ 100 = weighted average
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">2. Rock-Type Modifiers (Carbonate, Non-Fractured)</span></div>
+    <div class="card-body">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px">
+        Multiplier applied to Technical Score when reservoir rock type = Carbonate (non-fractured).
+        1.0 = no penalty. 0.5 = 50% penalty. Fractured carbonates use the hard cap above instead.
+      </p>
+      <div class="field-grid">
+        ${EOR_METHODS.map(m => `
+        <div class="field-group">
+          <label class="field-label">${m} <span class="cat-pill ${catClass(METHOD_CATEGORIES[m])} " style="font-size:9px">${METHOD_CATEGORIES[m]}</span></label>
+          <input class="field-input" type="number" min="0" max="1" step="0.05"
+            value="${t.rockModifiers[m]}"
+            onchange="setRockMod('${m}',parseFloat(this.value))">
+        </div>`).join("")}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">3. Water Treatment Flag Thresholds</span></div>
+    <div class="card-body">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px">
+        The 💧WT flag is raised when water quality may challenge EOR injection. Informational only — does not change scores.
+      </p>
+      <div class="tuning-grid">
+        ${buildTuningNum("wt_tds","TDS Trigger (mg/L)","Flag if formation TDS > this AND permeability < threshold",t.wt_tds)}
+        ${buildTuningNum("wt_divalents","Divalents Trigger (mg/L)","High divalents → scaling risk for polymer/chemicals",t.wt_divalents)}
+        ${buildTuningNum("wt_oiw","Oil-in-Water Trigger (mg/L)","OiW > threshold typically requires treatment before injection",t.wt_oiw)}
+        ${buildTuningNum("wt_solids","Suspended Solids Trigger (mg/L)","Solids plug pores in low-permeability reservoirs",t.wt_solids)}
+        ${buildTuningNum("wt_perm","Permeability Threshold (mD)","Below this perm, water quality is critical for injectivity",t.wt_perm)}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">4. Strategic Fit Weights</span></div>
+    <div class="card-body">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px">
+        🔬 Potential = remaining recovery upside | 💰 Cost = deployment cost-effectiveness | ⚡ Speed = time to first incremental oil
+      </p>
+      <div class="tuning-grid">
+        ${buildTuningNum("potentialWeight","🔬 High-Potential Weight (%)","Weight of recovery upside in Strategic Fit score",t.potentialWeight)}
+        ${buildTuningNum("costWeight","💰 Cost-Effectiveness Weight (%)","Weight of deployment cost in Strategic Fit",t.costWeight)}
+        ${buildTuningNum("speedWeight","⚡ Speed-to-First-Oil Weight (%)","Weight of deployment speed in Strategic Fit",t.speedWeight)}
+      </div>
+      <div style="margin-top:12px;padding:10px;background:var(--bg3);border-radius:var(--radius);font-family:var(--font-mono);font-size:12px">
+        Sum: ${t.potentialWeight+t.costWeight+t.speedWeight}% ${t.potentialWeight+t.costWeight+t.speedWeight===100?"✓ (must equal 100)":"⚠ must equal 100"}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:20px;display:flex;gap:12px">
+  <button class="btn btn-primary" onclick="runAndShowResults()">▶ Re-run Screening with These Settings</button>
+  <button class="btn btn-secondary" onclick="resetTuning()">↺ Reset to Defaults</button>
+</div>`;
+}
+
+function buildTuningNum(key, label, desc, val) {
+  return `
+<div class="tuning-item">
+  <label class="tuning-label">${label}</label>
+  <div class="tuning-desc">${desc}</div>
+  <input class="field-input" type="number" step="any" value="${val}"
+    onchange="setTuning('${key}',parseFloat(this.value))">
+</div>`;
+}
+
+// ── TAB 6: GUIDE ─────────────────────────────────────────────────────────────
+function buildGuide() {
+  return `
+<div class="section-title">User Guide & Scoring Methodology</div>
+
+<div style="display:grid;gap:20px;max-width:860px">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Workflow — 5 Steps</span></div>
+    <div class="card-body" style="display:grid;gap:14px">
+      ${[
+        ["① Reservoir Input","Enter field reservoir, fluid, and pressure data. Scored inputs are highlighted with blue borders."],
+        ["② Logistics Checklist","Answer Yes/Partial/No for each readiness question per method. ⚠ questions are soft-cap triggers."],
+        ["③ Results Dashboard","View Technical, Logistics, and Combined scores. Top 3 methods are highlighted. Flags explain constraints."],
+        ["④ Screening Criteria & Weights","Edit Min/Ideal/Max ranges and weights for each parameter and method. Real-time transparency."],
+        ["⑤ Tuning Panel","Adjust global balance (Tech/Log weights), soft-caps, MMP penalties, and Strategic Fit weights."],
+      ].map(([t,d])=>`<div><strong style="color:var(--accent)">${t}</strong><br><span style="color:var(--text2);font-size:13px">${d}</span></div>`).join("")}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">Scoring Logic — Technical Score</span></div>
+    <div class="card-body">
+      <p style="color:var(--text2);font-size:13px;line-height:1.7;margin-bottom:14px">
+        Each parameter is scored on a <strong style="color:var(--text)">triangular function</strong> [0–100]:
+      </p>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:14px;font-family:var(--font-mono);font-size:12px;line-height:1.8;color:var(--text2)">
+        value &lt; Min                  → score = 0 (out of range)<br>
+        Min ≤ value ≤ Ideal           → score = (value − Min) / (Ideal − Min) × 100<br>
+        Ideal ≤ value ≤ Max           → score = (Max − value) / (Max − Ideal) × 100<br>
+        value &gt; Max                 → score = 0 (out of range)<br>
+        Max = 999 (no upper limit)    → score = 100 once value ≥ Ideal<br>
+      </div>
+      <p style="color:var(--text2);font-size:13px;line-height:1.7;margin-top:14px">
+        <strong style="color:var(--text)">Weighted average:</strong> Technical Score = Σ(score_i × weight_i) / Σ(weight_i × 100) × 100<br>
+        Only parameters with weight &gt; 0 and non-empty field data are included.
+      </p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">Flags & Caps</span></div>
+    <div class="card-body" style="display:grid;gap:10px">
+      ${[
+        ["🚫MMP","Gas methods (Miscible CO₂, HC Gas, N₂): current reservoir pressure < MMP. Technical score capped at Soft-Cap threshold."],
+        ["🚫Frac","Fractured carbonate reservoir. Matrix bypassed by fractures — all methods capped except Low-Sal. WF."],
+        ["⚠Log","Logistics score at or below the soft-cap threshold (often triggered by critical 'No' answer)."],
+        ["💧WT","Water quality flag: high TDS+low perm, high divalents, high OiW, or high suspended solids. Informational only."],
+      ].map(([f,d])=>`<div style="display:flex;gap:12px"><span class="flag" style="white-space:nowrap;align-self:flex-start;margin-top:2px">${f}</span><span style="font-size:13px;color:var(--text2)">${d}</span></div>`).join("")}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">Sources & References</span></div>
+    <div class="card-body" style="font-size:13px;color:var(--text2);line-height:1.8">
+      Taber et al. (1997) — SPE criteria tables<br>
+      Sheng (2014) — Enhanced Oil Recovery Field Case Studies<br>
+      Al Adasani & Bai (2011) — EOR screening database analysis<br>
+      Hartono et al. (2017) — Chemical EOR screening<br>
+      Seright et al. (2021–2023) — Polymer flooding guidelines<br>
+      Delamaide (2018) — Polymer flood field performance<br>
+      Dupuis et al.; Thomas et al. — Field experience datasets<br>
+      <br>
+      <strong style="color:var(--text)">Important limitation:</strong> This tool provides indicative screening only.
+      Validate with detailed reservoir engineering, lab corefloods, and economics before pilot decisions.
+      MMP should be measured (slim-tube) or estimated via Cronquist/Glaso/Yelin correlations.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">Open Source & Collaboration</span></div>
+    <div class="card-body" style="font-size:13px;color:var(--text2);line-height:1.8">
+      This tool is MIT-licensed and hosted on GitHub.<br>
+      <strong style="color:var(--text)">How to contribute:</strong>
+      <ul style="margin:10px 0 0 18px;display:grid;gap:6px">
+        <li>Fork the repository and submit a Pull Request with new screening criteria or field data</li>
+        <li>Open an Issue to propose new EOR methods, parameters, or scoring modifications</li>
+        <li>Update <code style="font-family:var(--font-mono);background:var(--bg3);padding:1px 5px;border-radius:3px">scoringEngine.js</code> — all scoring logic is there, well-commented</li>
+        <li>Link a Google Sheet as a live criteria database (see README for integration guide)</li>
+      </ul>
+    </div>
+  </div>
+</div>`;
+}
+
+function buildFooter() {
+  return `
+<footer class="footer">
+  <span>EOR Screening Tool v5 — Open Source (MIT) — Based on Taber et al. (1997) and Thomas et al.</span>
+  <span><a href="https://github.com/your-org/eor-screening-tool" target="_blank">GitHub Repository</a> · Indicative screening only — validate with reservoir engineering</span>
+</footer>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EVENT HANDLERS (attached after render)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function attachEvents() {
+  // Nothing extra needed — all handlers use global functions via inline onclick
+}
+
+window.setTab = function(t) { state.activeTab = t; render(); };
+
+window.setField = function(key, val) {
+  state.fieldData[key] = val;
+  // Don't re-render — let user type freely
+};
+
+window.loadDemo = function(name) {
+  state.fieldData = { ...DEMO_FIELDS[name] };
+  render();
+};
+
+window.resetField = function() {
+  state.fieldData = {};
+  render();
+};
+
+window.runAndShowResults = function() {
+  runScreening();
+  state.activeTab = "results";
+  render();
+};
+
+window.setLogistics = function(method, key, val, isGeneral) {
+  if (isGeneral === "true" || isGeneral === true) {
+    state.generalLogistics[key] = val;
+  } else {
+    if (!state.logistics[method]) state.logistics[method] = {};
+    state.logistics[method][key] = val;
+  }
+  render();
+};
+
+window.toggleAccordion = function(key) {
+  state.openAccordions[key] = !state.openAccordions[key];
+  render();
+};
+
+window.setCriteria = function(method, param, field, value) {
+  state.criteria[method][param][field] = value;
+};
+
+window.resetCriteria = function() {
+  state.criteria = JSON.parse(JSON.stringify(SCREENING_CRITERIA));
+  render();
+};
+
+window.setTuning = function(key, val) {
+  state.tuning[key] = val;
+  render();
+};
+
+window.setRockMod = function(method, val) {
+  state.tuning.rockModifiers[method] = val;
+};
+
+window.resetTuning = function() {
+  state.tuning = JSON.parse(JSON.stringify(DEFAULT_TUNING));
+  render();
+};
+
+window.exportJSON = function() {
+  const data = {
+    fieldData: state.fieldData,
+    logistics: state.logistics,
+    generalLogistics: state.generalLogistics,
+    criteria: state.criteria,
+    tuning: state.tuning,
+    results: state.results,
+    exportedAt: new Date().toISOString(),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:"application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `eor-screening-${(state.fieldData.fieldName||"field").replace(/\s+/g,"-")}-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+};
+
+window.exportCSV = function() {
+  if (!state.results) { alert("Run screening first."); return; }
+  const rows = [["Method","Category","Technical","Logistics","Combined","Candidate","Flags","Strategic Fit","Potential","Cost","Speed"]];
+  for (const [m, r] of Object.entries(state.results)) {
+    rows.push([m, METHOD_CATEGORIES[m], r.tech, r.log, r.combined,
+      r.isCandidate?"Yes":"No", r.flags.join("|"),
+      r.strategic.fit, r.strategic.potential, r.strategic.cost, r.strategic.speed]);
+  }
+  const csv = rows.map(r=>r.join(",")).join("\n");
+  const blob = new Blob([csv], {type:"text/csv"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `eor-screening-${(state.fieldData.fieldName||"field").replace(/\s+/g,"-")}-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════════
+
+render();
+</script>
+</body>
+</html>
