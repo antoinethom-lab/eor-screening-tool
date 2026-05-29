@@ -460,32 +460,7 @@ select.field-input { appearance: none; cursor: pointer; }
   line-height: 1.4;
 }
 
-/* ── Strategic Fit ── */
-.strategic-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-.strategic-score-card {
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px;
-  text-align: center;
-}
-.strategic-score-label {
-  font-size: 11px;
-  color: var(--text2);
-  font-family: var(--font-mono);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  margin-bottom: 6px;
-}
-.strategic-score-value {
-  font-family: var(--font-head);
-  font-size: 28px;
-  font-weight: 700;
-}
+
 
 /* ── Top Methods Podium ── */
 .podium {
@@ -899,7 +874,7 @@ const DEFAULT_TUNING = {
   fracturedCarbCap: 30,
   rockModifiers: Object.fromEntries(EOR_METHODS.map(m => [m, 0.5])),
   wt_tds: 50000, wt_divalents: 1000, wt_oiw: 100, wt_solids: 20, wt_perm: 300,
-  potentialWeight: 33, costWeight: 33, speedWeight: 34,
+  potentialWeight: 33, costWeight: 33, speedWeight: 34, // kept for compatibility
 };
 
 const LOGISTICS_QUESTIONS = {
@@ -1080,35 +1055,6 @@ function computeFlags(fieldData, method, tech, log, tuning) {
   return flags;
 }
 
-const METHOD_PROFILES = {
-  "Miscible CO2":        { pot:80, cost:55, speed:60 },
-  "Immiscible CO2":      { pot:75, cost:58, speed:62 },
-  "Miscible HC Gas":     { pot:78, cost:60, speed:60 },
-  "WAG":                 { pot:82, cost:58, speed:62 },
-  "N2 Injection":        { pot:76, cost:56, speed:60 },
-  "Polymer Flood":       { pot:70, cost:62, speed:65 },
-  "ASP Flood":           { pot:78, cost:55, speed:66 },
-  "Surfactant-Polymer":  { pot:78, cost:55, speed:65 },
-  "Steam Flood":         { pot:72, cost:45, speed:58 },
-  "In-Situ Combustion":  { pot:74, cost:42, speed:55 },
-  "Hot Water Flood":     { pot:70, cost:48, speed:58 },
-  "Low-Sal. WF":         { pot:75, cost:65, speed:68 },
-};
-
-function computeStrategicFit(fieldData, method, tuning) {
-  const p = METHOD_PROFILES[method];
-  const ooip = parseFloat(fieldData.ooip ?? 0);
-  const rf   = parseFloat(fieldData.rf ?? 50) / 100;
-  const wells = parseFloat(fieldData.wells ?? 1);
-  const inj  = parseFloat(fieldData.injectors ?? 0);
-  const sp   = parseFloat(fieldData.spacing ?? 300);
-  const pot  = Math.min(100, Math.max(0, p.pot*(0.5+0.5*(1-rf))+Math.min(20,ooip/200)));
-  const cost = Math.min(100, Math.max(0, p.cost+Math.min(15,(wells/50)*10)));
-  const spd  = Math.min(100, Math.max(0, p.speed+(inj>0?Math.min(15,(inj/Math.max(wells,1))*20):0)+(sp>400?-5:0)));
-  const fit  = (pot*tuning.potentialWeight+cost*tuning.costWeight+spd*tuning.speedWeight)/
-               (tuning.potentialWeight+tuning.costWeight+tuning.speedWeight);
-  return { potential:Math.round(pot*10)/10, cost:Math.round(cost*10)/10, speed:Math.round(spd*10)/10, fit:Math.round(fit*10)/10 };
-}
 
 function screenField(fieldData, fieldLogistics={}, generalLogistics={}, criteria=SCREENING_CRITERIA, tuning=DEFAULT_TUNING) {
   const results = {};
@@ -1120,42 +1066,14 @@ function screenField(fieldData, fieldLogistics={}, generalLogistics={}, criteria
     const log = computeLogisticsScore(fieldLogistics, method, generalLogistics, tuning);
     const combined = (tech*tuning.techWeight + log*tuning.logWeight)/100;
     const flags = computeFlags(fieldData, method, tech, log, tuning);
-    const strategic = computeStrategicFit(fieldData, method, tuning);
     results[method] = {
       tech:Math.round(tech*10)/10, log:Math.round(log*10)/10, combined:Math.round(combined*10)/10,
-      strategic, flags, isCandidate: combined >= tuning.passThreshold,
+      flags, isCandidate: combined >= tuning.passThreshold,
     };
   }
   return results;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// DEMO FIELD DATA (from Excel — Kalamkas as default)
-// ═══════════════════════════════════════════════════════════════════════════
-
-const DEMO_FIELDS = {
-  "Kalamkas": {
-    api:13, viscosity:20, porosity:22, so:55, depth:800, temp:40, perm:550, netpay:30,
-    dp:0.6, tan:0.5, tds:30000, divalents:1500,
-    tds_formation:130000, oiw:500, suspended:20,
-    pres:80, mmp_co2:130, mmp_hcgas:130, mmp_n2:130,
-    rockType:"Sandstone", ooip:600, rf:40, wells:600, injectors:250, spacing:450,
-  },
-  "Shushufindi": {
-    api:30, viscosity:45, porosity:17, so:55, depth:1700, temp:85, perm:1000, netpay:3,
-    dp:0.7, tan:0.1, tds:5000, divalents:3000,
-    tds_formation:54000, oiw:100, suspended:30,
-    pres:30, mmp_co2:180, mmp_hcgas:180, mmp_n2:210,
-    rockType:"Sandstone", ooip:2000, rf:30, wells:30, injectors:15, spacing:150,
-  },
-  "Milne Point": {
-    api:28, viscosity:850, porosity:25, so:65, depth:550, temp:17, perm:1200, netpay:10,
-    dp:0.6, tan:0.5, tds:6000, divalents:300,
-    tds_formation:6000, oiw:200, suspended:20,
-    pres:80, mmp_co2:130, mmp_hcgas:130, mmp_n2:130,
-    rockType:"Sandstone", ooip:1500, rf:5, wells:95, injectors:35, spacing:100,
-  },
-};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STATE
@@ -1163,7 +1081,7 @@ const DEMO_FIELDS = {
 
 let state = {
   activeTab: "input",
-  fieldData: { ...DEMO_FIELDS["Kalamkas"] },
+  fieldData: {},
   logistics: {},       // { methodKey: { questionKey: "Yes"|"Partial"|"No" } }
   generalLogistics: {
     onshore:"Yes", infra:"Yes", wells:"Yes", access:"Yes",
@@ -1267,15 +1185,9 @@ function buildTabs() {
 // ── TAB 1: RESERVOIR INPUT ──────────────────────────────────────────────────
 function buildInput() {
   const fd = state.fieldData;
-  const demos = Object.keys(DEMO_FIELDS);
   return `
 <div class="section-title">Reservoir Input</div>
 <div class="section-sub">Enter reservoir properties for your field. Blue-outlined inputs are scored in the technical assessment.</div>
-
-<div class="info-box">
-  <strong>Demo fields:</strong> Load a pre-filled example to explore the tool.
-  ${demos.map(d=>`<button class="btn btn-secondary" style="margin-left:8px;margin-top:4px" onclick="loadDemo('${d}')">${d}</button>`).join("")}
-</div>
 
 <div style="display:grid;gap:20px">
   ${buildInputSection("🆔 Field Identification", [
@@ -1478,36 +1390,7 @@ function buildResults() {
     </tbody>
   </table>
 </div>
-
-<div style="margin-top:24px">
-  <div class="section-title" style="font-size:16px;margin-bottom:12px">🎯 Strategic Fit</div>
-  <div class="section-sub">Independent value-based ranking. Potential × Cost × Speed. Weights adjustable in Tuning Panel.</div>
-  <div class="card" style="overflow-x:auto">
-    <table class="results-table">
-      <thead>
-        <tr>
-          <th>Method</th>
-          <th>🔬 Potential</th>
-          <th>💰 Cost-Effectiveness</th>
-          <th>⚡ Speed-to-Oil</th>
-          <th>🎯 Strategic Fit</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${EOR_METHODS.map(m=>{
-          const s = r[m].strategic;
-          return `<tr>
-            <td style="font-weight:600">${m}</td>
-            <td>${buildScoreBar(s.potential)}</td>
-            <td>${buildScoreBar(s.cost)}</td>
-            <td>${buildScoreBar(s.speed)}</td>
-            <td>${buildScoreBar(s.fit,true)}</td>
-          </tr>`;
-        }).join("")}
-      </tbody>
-    </table>
-  </div>
-</div>`;
+`;
 }
 
 function buildScoreBar(v, bold=false) {
@@ -1665,23 +1548,6 @@ function buildTuning() {
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-header"><span class="card-title">4. Strategic Fit Weights</span></div>
-    <div class="card-body">
-      <p style="font-size:13px;color:var(--text2);margin-bottom:16px">
-        🔬 Potential = remaining recovery upside | 💰 Cost = deployment cost-effectiveness | ⚡ Speed = time to first incremental oil
-      </p>
-      <div class="tuning-grid">
-        ${buildTuningNum("potentialWeight","🔬 High-Potential Weight (%)","Weight of recovery upside in Strategic Fit score",t.potentialWeight)}
-        ${buildTuningNum("costWeight","💰 Cost-Effectiveness Weight (%)","Weight of deployment cost in Strategic Fit",t.costWeight)}
-        ${buildTuningNum("speedWeight","⚡ Speed-to-First-Oil Weight (%)","Weight of deployment speed in Strategic Fit",t.speedWeight)}
-      </div>
-      <div style="margin-top:12px;padding:10px;background:var(--bg3);border-radius:var(--radius);font-family:var(--font-mono);font-size:12px">
-        Sum: ${t.potentialWeight+t.costWeight+t.speedWeight}% ${t.potentialWeight+t.costWeight+t.speedWeight===100?"✓ (must equal 100)":"⚠ must equal 100"}
-      </div>
-    </div>
-  </div>
-
 </div>
 
 <div style="margin-top:20px;display:flex;gap:12px">
@@ -1714,7 +1580,7 @@ function buildGuide() {
         ["② Logistics Checklist","Answer Yes/Partial/No for each readiness question per method. ⚠ questions are soft-cap triggers."],
         ["③ Results Dashboard","View Technical, Logistics, and Combined scores. Top 3 methods are highlighted. Flags explain constraints."],
         ["④ Screening Criteria & Weights","Edit Min/Ideal/Max ranges and weights for each parameter and method. Real-time transparency."],
-        ["⑤ Tuning Panel","Adjust global balance (Tech/Log weights), soft-caps, MMP penalties, and Strategic Fit weights."],
+        ["⑤ Tuning Panel","Adjust global balance (Tech/Log weights), soft-caps, MMP penalties, and water treatment thresholds."],
       ].map(([t,d])=>`<div><strong style="color:var(--accent)">${t}</strong><br><span style="color:var(--text2);font-size:13px">${d}</span></div>`).join("")}
     </div>
   </div>
@@ -1807,11 +1673,6 @@ window.setField = function(key, val) {
   // Don't re-render — let user type freely
 };
 
-window.loadDemo = function(name) {
-  state.fieldData = { ...DEMO_FIELDS[name] };
-  render();
-};
-
 window.resetField = function() {
   state.fieldData = {};
   render();
@@ -1880,11 +1741,10 @@ window.exportJSON = function() {
 
 window.exportCSV = function() {
   if (!state.results) { alert("Run screening first."); return; }
-  const rows = [["Method","Category","Technical","Logistics","Combined","Candidate","Flags","Strategic Fit","Potential","Cost","Speed"]];
+  const rows = [["Method","Category","Technical","Logistics","Combined","Candidate","Flags"]];
   for (const [m, r] of Object.entries(state.results)) {
     rows.push([m, METHOD_CATEGORIES[m], r.tech, r.log, r.combined,
-      r.isCandidate?"Yes":"No", r.flags.join("|"),
-      r.strategic.fit, r.strategic.potential, r.strategic.cost, r.strategic.speed]);
+      r.isCandidate?"Yes":"No", r.flags.join("|")]);
   }
   const csv = rows.map(r=>r.join(",")).join("\n");
   const blob = new Blob([csv], {type:"text/csv"});
