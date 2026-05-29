@@ -16,7 +16,6 @@ An open-source, collaborative EOR (Enhanced Oil Recovery) screening tool built f
 - **Transparent scoring** — triangular scoring function, fully documented, editable Min/Ideal/Max ranges and weights (0–5)
 - **Logistics checklist** — Yes/Partial/No per method with soft-cap logic
 - **Tuning panel** — adjust Technical/Logistics balance, MMP caps, rock-type modifiers, water treatment thresholds, Strategic Fit weights
-- **Strategic Fit** — independent value-based ranking (Potential × Cost × Speed)
 - **Export** — JSON (full state) and CSV (results table)
 - **Zero dependencies** — pure HTML/CSS/JS, runs in any browser, no build step needed
 
